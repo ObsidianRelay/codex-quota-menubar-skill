@@ -4,6 +4,12 @@ An unofficial, local-first macOS menu bar utility and Codex Skill for viewing
 the remaining weekly Codex quota together with lightweight Mac CPU and memory
 pressure information.
 
+## Preview
+
+<p align="center">
+  <img src="codex-quota-menubar/assets/screenshots/codex-quota-dashboard.png" alt="Codex weekly quota and local Mac status dashboard" width="470">
+</p>
+
 ## Features
 
 - Native AppKit menu bar utility for macOS 13 or newer
@@ -51,7 +57,9 @@ codex-quota-menubar/
 │   ├── Info.plist
 │   ├── icon-codex-dark-color.png
 │   ├── icon-codex-light.png
-│   └── icon-fan.png
+│   ├── icon-fan.png
+│   └── screenshots/
+│       └── codex-quota-dashboard.png
 └── scripts/
     ├── build_app.sh
     ├── verify_app.sh
