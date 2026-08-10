@@ -10,6 +10,19 @@ pressure information.
   <img src="codex-quota-menubar/assets/screenshots/codex-quota-dashboard.png" alt="Codex weekly quota and local Mac status dashboard" width="470">
 </p>
 
+## Download
+
+<p align="center">
+  <a href="https://github.com/ObsidianRelay/codex-quota-menubar-skill/releases/download/v2.2.0/CodexQuotaMenuBar-v2.2.0-macOS-arm64.zip">
+    <img src="https://img.shields.io/badge/Download-macOS%20Apple%20silicon-0A84FF?style=for-the-badge&amp;logo=apple&amp;logoColor=white" alt="Download Codex Quota Menu Bar for macOS">
+  </a>
+</p>
+
+<p align="center">
+  macOS 13 or later · Apple silicon (M1 or newer) ·
+  <a href="https://github.com/ObsidianRelay/codex-quota-menubar-skill/releases/tag/v2.2.0">Release notes and SHA-256</a>
+</p>
+
 ## Features
 
 - Native AppKit menu bar utility for macOS 13 or newer
