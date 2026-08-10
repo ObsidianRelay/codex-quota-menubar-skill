@@ -1,0 +1,8 @@
+.DS_Store
+dist/
+build/
+*.app/
+*.log
+*.bak
+*.bak.*
+
