@@ -12,7 +12,7 @@ static const NSTimeInterval CQQuotaRefreshSeconds = 180.0;
 static const NSTimeInterval CQSystemSampleSeconds = 1.0;
 static const NSUInteger CQCPUHistoryLimit = 60;
 static const CGFloat CQPanelWidth = 470.0;
-static const CGFloat CQPanelHeight = 760.0;
+static const CGFloat CQPanelHeight = 728.0;
 
 static NSColor *CQColor(CGFloat red, CGFloat green, CGFloat blue, CGFloat alpha) {
     return [NSColor colorWithSRGBRed:red / 255.0
@@ -51,6 +51,41 @@ static NSString *CQFormatTokenCount(NSNumber *number) {
     if (value >= 1000000.0) return [NSString stringWithFormat:@"%.1fM", value / 1000000.0];
     if (value >= 1000.0) return [NSString stringWithFormat:@"%.1fK", value / 1000.0];
     return [NSString stringWithFormat:@"%.0f", value];
+}
+
+// 将额度重置时间转换为便于快速查看的倒计时，不显示负数。
+static NSString *CQFormatResetCountdown(NSDate *resetDate, NSDate *now) {
+    if (resetDate == nil) return @"未知";
+    NSDate *referenceDate = now ?: NSDate.date;
+    NSTimeInterval remaining = [resetDate timeIntervalSinceDate:referenceDate];
+    if (remaining <= 0.0) return @"即将重置";
+    NSInteger totalHours = (NSInteger)floor(remaining / 3600.0);
+    if (totalHours < 1) return @"不足 1 小时";
+    NSInteger days = totalHours / 24;
+    NSInteger hours = totalHours % 24;
+    if (days > 0) {
+        return [NSString stringWithFormat:@"%ld 天 %ld 小时", (long)days, (long)hours];
+    }
+    return [NSString stringWithFormat:@"%ld 小时", (long)hours];
+}
+
+// 日均只统计本月已经产生 Token 的日期，不把未来日期和空日期计入分母。
+static NSNumber *CQAverageRecordedDailyTokens(NSArray<NSNumber *> *values) {
+    double total = 0.0;
+    NSUInteger recordedDays = 0;
+    for (NSNumber *number in values) {
+        double value = MAX(0.0, number.doubleValue);
+        if (value <= 0.0) continue;
+        total += value;
+        recordedDays++;
+    }
+    return recordedDays > 0 ? @(total / recordedDays) : nil;
+}
+
+static NSNumber *CQPeakDailyTokens(NSArray<NSNumber *> *values) {
+    double peak = 0.0;
+    for (NSNumber *number in values) peak = MAX(peak, number.doubleValue);
+    return peak > 0.0 ? @(peak) : nil;
 }
 
 @interface CQQuotaSnapshot : NSObject
@@ -750,10 +785,13 @@ static double CQFanTurnsPerSecond(double cpuPercent) {
               font:[NSFont monospacedDigitSystemFontOfSize:18.0 weight:NSFontWeightMedium] color:foreground];
     [self drawQuotaSegmentsInRect:NSMakeRect(35.0, 187.0, 400.0, 8.0)
                          fraction:(available ? remaining / 100.0 : 0.0)];
-    [self drawText:[NSString stringWithFormat:@"↻ 重置于 %@", self.formattedResetDate]
-                 at:NSMakePoint(35.0, 210.0) font:mono12 color:secondary];
     [self drawText:[NSString stringWithFormat:@"● 检查于 %@", self.formattedCheckTime]
-                 at:NSMakePoint(35.0, 233.0) font:mono12 color:secondary];
+                 at:NSMakePoint(35.0, 210.0) font:mono12 color:secondary];
+    NSString *resetStatus = self.quotaSnapshot.resetDate == nil ? @"↻ 距离重置时间未知" :
+        [NSString stringWithFormat:@"↻ 距离重置还有 %@ · %@",
+                                   CQFormatResetCountdown(self.quotaSnapshot.resetDate, NSDate.date),
+                                   self.formattedResetDate];
+    [self drawText:resetStatus at:NSMakePoint(35.0, 233.0) font:mono12 color:secondary];
 
     [CQColor(63, 115, 145, 0.36) setStroke];
     NSBezierPath *usageDivider = NSBezierPath.bezierPath;
@@ -786,7 +824,12 @@ static double CQFanTurnsPerSecond(double cpuPercent) {
         x = MAX(35.0, MIN(435.0 - size.width, x));
         [label drawAtPoint:NSMakePoint(x, 438.0) withAttributes:attrs];
     }
-    [self drawText:@"按天统计" at:NSMakePoint(35.0, 461.0)
+    NSNumber *dailyPeak = CQPeakDailyTokens(self.quotaSnapshot.dailyTokenUsage ?: @[]);
+    NSNumber *dailyAverage = CQAverageRecordedDailyTokens(self.quotaSnapshot.dailyTokenUsage ?: @[]);
+    NSString *dailySummary = [NSString stringWithFormat:@"单日峰值 %@ · 日均 %@",
+                                                        CQFormatTokenCount(dailyPeak),
+                                                        CQFormatTokenCount(dailyAverage)];
+    [self drawText:dailySummary at:NSMakePoint(35.0, 461.0)
               font:[NSFont systemFontOfSize:11.0 weight:NSFontWeightRegular] color:muted];
     [self drawText:@"本月" right:435.0 y:461.0
               font:[NSFont systemFontOfSize:11.0 weight:NSFontWeightRegular] color:muted];
@@ -877,9 +920,9 @@ static double CQFanTurnsPerSecond(double cpuPercent) {
     _cpuSystemHistory = [NSMutableArray array];
     _previewMode = [NSProcessInfo.processInfo.arguments containsObject:@"--preview-window"];
 
-    // 使用系统变量宽度状态项，不读写菜单栏位置缓存，避免再次被旧位置记录移出屏幕。
+    // 使用系统变量宽度状态项，并保持未命名；不启用位置持久化，避免 macOS 26
+    // 把曾经隐藏或越界的位置重新应用到后续启动。
     _statusItem = [NSStatusBar.systemStatusBar statusItemWithLength:NSVariableStatusItemLength];
-    _statusItem.visible = YES;
     NSString *iconPath = [NSBundle.mainBundle pathForResource:@"icon-codex-light" ofType:@"png"];
     _menuIcon = [[NSImage alloc] initWithContentsOfFile:iconPath];
     _menuIcon.size = NSMakeSize(18.0, 18.0);
@@ -894,6 +937,7 @@ static double CQFanTurnsPerSecond(double cpuPercent) {
     button.toolTip = @"Codex 每周额度";
     button.target = self;
     button.action = @selector(togglePanel:);
+    _statusItem.visible = YES;
 
     NSView *container = [self makeDashboardContainer];
     if (_previewMode) {
@@ -1085,6 +1129,19 @@ static BOOL CQRunSelfTests(void) {
     if (weekly.monthlyTokens.longLongValue != 3500 || weekly.dailyTokenUsage.count != 31) {
         fprintf(stderr, "SELF-TEST FAIL: monthly token aggregation\n"); return NO;
     }
+    NSNumber *average = CQAverageRecordedDailyTokens(weekly.dailyTokenUsage);
+    NSNumber *peak = CQPeakDailyTokens(weekly.dailyTokenUsage);
+    if (average.longLongValue != 1750 || peak.longLongValue != 2500) {
+        fprintf(stderr, "SELF-TEST FAIL: monthly token summary\n"); return NO;
+    }
+    NSDate *countdownNow = [NSDate dateWithTimeIntervalSince1970:1700000000];
+    NSDate *countdownReset = [countdownNow dateByAddingTimeInterval:(5 * 24 + 15) * 3600];
+    if (![CQFormatResetCountdown(countdownReset, countdownNow)
+          isEqualToString:@"5 天 15 小时"] ||
+        ![CQFormatResetCountdown([countdownNow dateByAddingTimeInterval:1800], countdownNow)
+          isEqualToString:@"不足 1 小时"]) {
+        fprintf(stderr, "SELF-TEST FAIL: reset countdown formatting\n"); return NO;
+    }
     if (![CQMemoryPressureLabelForAvailableRatio(0.30) isEqualToString:@"正常"] ||
         ![CQMemoryPressureLabelForAvailableRatio(0.10) isEqualToString:@"注意"] ||
         ![CQMemoryPressureLabelForAvailableRatio(0.03) isEqualToString:@"紧张"] ||
@@ -1138,6 +1195,7 @@ static BOOL CQPrintStatusFrame(void) {
     item.button.imageScaling = NSImageScaleProportionallyDown;
     item.button.font = [NSFont systemFontOfSize:13.0 weight:NSFontWeightMedium];
     item.button.title = @"45%";
+    item.visible = YES;
     NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:1.0];
     while (deadline.timeIntervalSinceNow > 0) {
         [NSRunLoop.currentRunLoop runMode:NSDefaultRunLoopMode beforeDate:

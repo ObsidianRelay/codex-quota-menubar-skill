@@ -7,15 +7,15 @@
     <key>CFBundleExecutable</key>
     <string>CodexQuotaMenuBar</string>
     <key>CFBundleIdentifier</key>
-	<string>local.codex.quota.menubar.v3</string>
+	<string>local.codex.quota.menubar.v5</string>
     <key>CFBundleName</key>
     <string>CodexQuotaMenuBar</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-	<string>2.2.0</string>
+	<string>2.2.1</string>
     <key>CFBundleVersion</key>
-	<string>7</string>
+	<string>8</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSUIElement</key>

@@ -39,7 +39,7 @@ Start the menu bar utility:
 
 The menu bar entry uses variable system width, a native Codex image, and a native percentage title. Clicking it toggles a transparent borderless `NSPanel`; do not replace it with `NSMenu`, because the system menu window adds an unavoidable outer frame. The upper section contains the real weekly quota, reset/check times, progress bar, and monthly token chart. The lower section contains a 60-second CPU chart, a visual fan beside the CPU label, and memory pressure. Do not add a login item unless the user explicitly requests it.
 
-Keep the stable bundle identifier `local.codex.quota.menubar.v3`. Do not reuse the retired `local.codex.quota.menubar` or `local.codex.quota.menubar.v2` identifiers: macOS 26 cached those identities with conflicting status-item positions.
+Keep the stable bundle identifier `local.codex.quota.menubar.v5`. Do not reuse the retired `local.codex.quota.menubar`, `local.codex.quota.menubar.v2`, `local.codex.quota.menubar.v3`, or `local.codex.quota.menubar.v4` identifiers: macOS 26 cached those identities with conflicting or off-screen status-item positions, and multiple archived v3 app copies shared the same LaunchServices identity. Keep the production status item unnamed and do not set `autosaveName`, so AppKit assigns a safe current-screen position instead of restoring a stale private status-item record.
 
 ## Data Rules
 
