@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <unistd.h>
 
+static const NSInteger CQFiveHourWindowMinutes = 300;
 static const NSInteger CQWeeklyWindowMinutes = 10080;
 static const NSTimeInterval CQReadTimeoutSeconds = 9.0;
 static const NSTimeInterval CQQuotaRefreshSeconds = 180.0;
@@ -29,6 +30,14 @@ static NSNumber *CQNumberFromValue(id value) {
         return [[[NSNumberFormatter alloc] init] numberFromString:value];
     }
     return nil;
+}
+
+static NSDate *CQDateFromResetValue(id value) {
+    NSNumber *timestampValue = CQNumberFromValue(value);
+    if (timestampValue == nil) return nil;
+    NSTimeInterval timestamp = timestampValue.doubleValue;
+    if (timestamp > 10000000000.0) timestamp /= 1000.0;
+    return [NSDate dateWithTimeIntervalSince1970:timestamp];
 }
 
 static NSString *CQPlanDisplayName(NSString *planType) {
@@ -90,6 +99,7 @@ static NSNumber *CQPeakDailyTokens(NSArray<NSNumber *> *values) {
 
 @interface CQQuotaSnapshot : NSObject
 @property(nonatomic, strong, nullable) NSNumber *remainingPercent;
+@property(nonatomic, strong, nullable) NSNumber *fiveHourRemainingPercent;
 @property(nonatomic, strong, nullable) NSDate *resetDate;
 @property(nonatomic, strong) NSDate *checkedAt;
 @property(nonatomic, copy, nullable) NSString *planType;
@@ -126,6 +136,19 @@ static NSNumber *CQPeakDailyTokens(NSArray<NSNumber *> *values) {
 
 @end
 
+static NSString *CQMenuBarTitleForSnapshot(CQQuotaSnapshot *snapshot, BOOL refreshing) {
+    NSNumber *fiveHour = snapshot.fiveHourRemainingPercent;
+    NSNumber *weekly = snapshot.remainingPercent;
+    if (fiveHour != nil) {
+        NSString *weeklyText = weekly == nil ? @"—" :
+            [NSString stringWithFormat:@"%ld%%", (long)weekly.integerValue];
+        return [NSString stringWithFormat:@"5h %ld%% · 7d %@",
+                                          (long)fiveHour.integerValue, weeklyText];
+    }
+    if (weekly != nil) return [NSString stringWithFormat:@"%ld%%", (long)weekly.integerValue];
+    return refreshing ? @"…" : @"—";
+}
+
 @interface CQRateLimitReader : NSObject
 + (CQQuotaSnapshot *)snapshotFromRatePayload:(NSDictionary *)payload checkedAt:(NSDate *)checkedAt;
 + (void)applyUsagePayload:(NSDictionary *)payload
@@ -148,30 +171,32 @@ static NSNumber *CQPeakDailyTokens(NSArray<NSNumber *> *values) {
     }
     if ([payload[@"primary"] isKindOfClass:NSDictionary.class]) [snapshots addObject:payload];
 
+    CQQuotaSnapshot *snapshot = [CQQuotaSnapshot failureWithMessage:@"没有找到真实的每周额度"
+                                                           checkedAt:checkedAt];
     for (NSDictionary *candidate in snapshots) {
-        NSDictionary *primary = candidate[@"primary"];
-        if (![primary isKindOfClass:NSDictionary.class]) continue;
-        NSNumber *duration = CQNumberFromValue(primary[@"windowDurationMins"]);
-        NSNumber *used = CQNumberFromValue(primary[@"usedPercent"]);
-        if (duration == nil || used == nil || duration.integerValue != CQWeeklyWindowMinutes) continue;
-
-        NSInteger remaining = MAX(0, MIN(100, 100 - lround(used.doubleValue)));
-        NSDate *resetDate = nil;
-        NSNumber *resetTimestamp = CQNumberFromValue(primary[@"resetsAt"]);
-        if (resetTimestamp != nil) {
-            NSTimeInterval timestamp = resetTimestamp.doubleValue;
-            if (timestamp > 10000000000.0) timestamp /= 1000.0;
-            resetDate = [NSDate dateWithTimeIntervalSince1970:timestamp];
-        }
-
-        CQQuotaSnapshot *snapshot = [CQQuotaSnapshot successWithRemaining:remaining
-                                                                resetDate:resetDate
-                                                                checkedAt:checkedAt];
         NSString *planType = candidate[@"planType"];
-        if ([planType isKindOfClass:NSString.class]) snapshot.planType = planType;
-        return snapshot;
+        if (snapshot.planType.length == 0 && [planType isKindOfClass:NSString.class]) {
+            snapshot.planType = planType;
+        }
+        for (NSString *windowKey in @[@"primary", @"secondary"]) {
+            NSDictionary *window = candidate[windowKey];
+            if (![window isKindOfClass:NSDictionary.class]) continue;
+            NSNumber *duration = CQNumberFromValue(window[@"windowDurationMins"]);
+            NSNumber *used = CQNumberFromValue(window[@"usedPercent"]);
+            if (duration == nil || used == nil) continue;
+            NSInteger remaining = MAX(0, MIN(100, 100 - lround(used.doubleValue)));
+            if (duration.integerValue == CQFiveHourWindowMinutes &&
+                snapshot.fiveHourRemainingPercent == nil) {
+                snapshot.fiveHourRemainingPercent = @(remaining);
+            } else if (duration.integerValue == CQWeeklyWindowMinutes &&
+                       snapshot.remainingPercent == nil) {
+                snapshot.remainingPercent = @(remaining);
+                snapshot.resetDate = CQDateFromResetValue(window[@"resetsAt"]);
+                snapshot.errorMessage = nil;
+            }
+        }
     }
-    return [CQQuotaSnapshot failureWithMessage:@"没有找到真实的每周额度" checkedAt:checkedAt];
+    return snapshot;
 }
 
 + (void)applyUsagePayload:(NSDictionary *)payload
@@ -934,7 +959,7 @@ static double CQFanTurnsPerSecond(double cpuPercent) {
     button.imageHugsTitle = YES;
     button.font = [NSFont systemFontOfSize:13.0 weight:NSFontWeightMedium];
     button.title = @"…";
-    button.toolTip = @"Codex 每周额度";
+    button.toolTip = @"Codex 使用额度";
     button.target = self;
     button.action = @selector(togglePanel:);
     _statusItem.visible = YES;
@@ -1023,12 +1048,19 @@ static double CQFanTurnsPerSecond(double cpuPercent) {
     [self refresh];
     [self startSystemUpdates];
     [self.panel makeKeyAndOrderFront:nil];
+    [self.statusItem.button highlight:YES];
+    // NSStatusBarButton 的点击跟踪结束后，AppKit 可能恢复瞬时按压状态；下一轮主线程
+    // 再确认一次高亮，使自定义 NSPanel 打开期间保持与系统菜单一致的灰色背景。
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.panel.visible) [self.statusItem.button highlight:YES];
+    });
 }
 
 - (void)closePanel {
     if (self.panel == nil || !self.panel.visible) return;
     self.lastPanelCloseDate = NSDate.date;
     [self.panel orderOut:nil];
+    [self.statusItem.button highlight:NO];
     [self stopSystemUpdates];
 }
 
@@ -1038,8 +1070,7 @@ static double CQFanTurnsPerSecond(double cpuPercent) {
 
 - (void)quotaRefreshTimerFired:(NSTimer *)timer { (void)timer; [self refresh]; }
 - (NSString *)menuBarTitle {
-    if (self.snapshot.isAvailable) return [NSString stringWithFormat:@"%@%%", self.snapshot.remainingPercent];
-    return self.refreshInFlight ? @"…" : @"—";
+    return CQMenuBarTitleForSnapshot(self.snapshot, self.refreshInFlight);
 }
 - (void)refresh {
     if (self.refreshInFlight) return;
@@ -1102,20 +1133,62 @@ static BOOL CQRunSelfTests(void) {
         @"windowDurationMins": @10080, @"resetsAt": @1786756753}}};
     CQQuotaSnapshot *weekly = [CQRateLimitReader snapshotFromRatePayload:weeklyPayload checkedAt:checkedAt];
     if (!weekly.isAvailable || weekly.remainingPercent.integerValue != 57 ||
-        ![weekly.planType isEqualToString:@"pro"]) {
-        fprintf(stderr, "SELF-TEST FAIL: weekly percentage or plan\n"); return NO;
+        weekly.fiveHourRemainingPercent != nil || ![weekly.planType isEqualToString:@"pro"] ||
+        ![CQMenuBarTitleForSnapshot(weekly, NO) isEqualToString:@"57%"]) {
+        fprintf(stderr, "SELF-TEST FAIL: weekly-only response or title\n"); return NO;
+    }
+    NSDictionary *mixedPayload = @{@"rateLimits": @{
+        @"planType": @"plus",
+        @"primary": @{@"usedPercent": @20, @"windowDurationMins": @300,
+                       @"resetsAt": @1787725764},
+        @"secondary": @{@"usedPercent": @3, @"windowDurationMins": @10080,
+                         @"resetsAt": @1788312564}}};
+    CQQuotaSnapshot *mixed = [CQRateLimitReader snapshotFromRatePayload:mixedPayload checkedAt:checkedAt];
+    if (!mixed.isAvailable || mixed.fiveHourRemainingPercent.integerValue != 80 ||
+        mixed.remainingPercent.integerValue != 97 || ![mixed.planType isEqualToString:@"plus"] ||
+        ![CQMenuBarTitleForSnapshot(mixed, NO) isEqualToString:@"5h 80% · 7d 97%"]) {
+        fprintf(stderr, "SELF-TEST FAIL: five-hour plus weekly response or title\n"); return NO;
+    }
+    NSDictionary *swappedPayload = @{@"rateLimits": @{
+        @"primary": @{@"usedPercent": @4, @"windowDurationMins": @10080,
+                       @"resetsAt": @1788312564},
+        @"secondary": @{@"usedPercent": @25, @"windowDurationMins": @300,
+                         @"resetsAt": @1787725764}}};
+    CQQuotaSnapshot *swapped = [CQRateLimitReader snapshotFromRatePayload:swappedPayload checkedAt:checkedAt];
+    if (!swapped.isAvailable || swapped.remainingPercent.integerValue != 96 ||
+        swapped.fiveHourRemainingPercent.integerValue != 75) {
+        fprintf(stderr, "SELF-TEST FAIL: swapped windows\n"); return NO;
     }
     NSDictionary *byIDPayload = @{@"rateLimitsByLimitId": @{@"codex": @{
-        @"primary": @{@"usedPercent": @12, @"windowDurationMins": @10080,
-        @"resetsAt": @1786756753}}}};
+        @"primary": @{@"usedPercent": @12, @"windowDurationMins": @300,
+                       @"resetsAt": @1787725764},
+        @"secondary": @{@"usedPercent": @8, @"windowDurationMins": @10080,
+                         @"resetsAt": @1788312564}}}};
     CQQuotaSnapshot *byID = [CQRateLimitReader snapshotFromRatePayload:byIDPayload checkedAt:checkedAt];
-    if (!byID.isAvailable || byID.remainingPercent.integerValue != 88) {
+    if (!byID.isAvailable || byID.remainingPercent.integerValue != 92 ||
+        byID.fiveHourRemainingPercent.integerValue != 88) {
         fprintf(stderr, "SELF-TEST FAIL: by-limit-id response\n"); return NO;
+    }
+    NSDictionary *fiveHourOnlyPayload = @{@"rateLimits": @{@"primary": @{
+        @"usedPercent": @20, @"windowDurationMins": @300, @"resetsAt": @1787725764}}};
+    CQQuotaSnapshot *fiveHourOnly =
+        [CQRateLimitReader snapshotFromRatePayload:fiveHourOnlyPayload checkedAt:checkedAt];
+    if (fiveHourOnly.isAvailable || fiveHourOnly.fiveHourRemainingPercent.integerValue != 80 ||
+        ![CQMenuBarTitleForSnapshot(fiveHourOnly, NO) isEqualToString:@"5h 80% · 7d —"]) {
+        fprintf(stderr, "SELF-TEST FAIL: five-hour-only failure title\n"); return NO;
     }
     NSDictionary *shortPayload = @{@"rateLimits": @{@"primary": @{
         @"usedPercent": @43, @"windowDurationMins": @60, @"resetsAt": @1786756753}}};
-    if ([CQRateLimitReader snapshotFromRatePayload:shortPayload checkedAt:checkedAt].isAvailable) {
+    CQQuotaSnapshot *shortWindow =
+        [CQRateLimitReader snapshotFromRatePayload:shortPayload checkedAt:checkedAt];
+    if (shortWindow.isAvailable || shortWindow.fiveHourRemainingPercent != nil) {
         fprintf(stderr, "SELF-TEST FAIL: non-weekly window accepted\n"); return NO;
+    }
+    CQQuotaSnapshot *empty = [CQRateLimitReader snapshotFromRatePayload:@{} checkedAt:checkedAt];
+    if (empty.isAvailable || empty.fiveHourRemainingPercent != nil ||
+        ![CQMenuBarTitleForSnapshot(empty, NO) isEqualToString:@"—"] ||
+        ![CQMenuBarTitleForSnapshot(empty, YES) isEqualToString:@"…"]) {
+        fprintf(stderr, "SELF-TEST FAIL: empty response titles\n"); return NO;
     }
     NSCalendar *calendar = [NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian];
     NSDateComponents *parts = [[NSDateComponents alloc] init];
@@ -1225,6 +1298,10 @@ int main(int argc, const char *argv[]) {
             CQQuotaSnapshot *snapshot = [[[CQRateLimitReader alloc] init] readSynchronously];
             if (!snapshot.isAvailable) {
                 fprintf(stderr, "%s\n", (snapshot.errorMessage ?: @"暂时无法读取").UTF8String); return 1;
+            }
+            if (snapshot.fiveHourRemainingPercent != nil) {
+                printf("Five-hour remaining: %ld%%\n",
+                       (long)snapshot.fiveHourRemainingPercent.integerValue);
             }
             printf("Weekly remaining: %ld%%\n", (long)snapshot.remainingPercent.integerValue);
             printf("Plan: %s\n", CQPlanDisplayName(snapshot.planType).UTF8String);

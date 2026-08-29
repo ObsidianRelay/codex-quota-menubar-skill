@@ -7,7 +7,7 @@ description: Build, run, verify, and troubleshoot the local macOS Codex weekly-q
 
 ## Overview
 
-Maintain a local menu bar utility that shows the real Codex icon followed by the remaining weekly percentage. Clicking it opens one borderless dark dashboard that keeps quota and local Mac status visually connected. Keep the utility self-contained inside this Skill and never modify ChatGPT.app or a pet package.
+Maintain a local menu bar utility that shows the real Codex icon followed by quota remaining. When both windows exist, the compact title is `5h 80% · 7d 97%`; when there is no five-hour window, keep the original weekly-only title such as `97%`. Clicking it opens one borderless dark dashboard that keeps the weekly quota and local Mac status visually connected. Keep the utility self-contained inside this Skill and never modify ChatGPT.app or a pet package.
 
 ## Build
 
@@ -27,9 +27,9 @@ Require all of these checks to pass before treating the App as complete:
 
 - Skill validation.
 - App bundle plist validation and code-signature verification.
-- Parser self-tests for a weekly window, by-limit-id response, non-weekly rejection, and empty-data rejection.
+- Parser and title self-tests for weekly-only, five-hour plus weekly, swapped windows, by-limit-id, invalid-window, and empty-data responses.
 - A local system sample that prints total CPU, system CPU, and memory-pressure state.
-- A live quota read that prints only the weekly remaining percentage and reset timestamp.
+- A live quota read that prints the optional five-hour remaining percentage plus the weekly remaining percentage and reset timestamp.
 
 ## Run
 
@@ -37,15 +37,18 @@ Start the menu bar utility:
 
     open dist/CodexQuotaMenuBar.app
 
-The menu bar entry uses variable system width, a native Codex image, and a native percentage title. Clicking it toggles a transparent borderless `NSPanel`; do not replace it with `NSMenu`, because the system menu window adds an unavoidable outer frame. The upper section contains the real weekly quota, reset/check times, progress bar, and monthly token chart. The lower section contains a 60-second CPU chart, a visual fan beside the CPU label, and memory pressure. Do not add a login item unless the user explicitly requests it.
+The menu bar entry uses variable system width, a native Codex image, and a native percentage title. Clicking it toggles a transparent borderless `NSPanel`; keep the status-bar button highlighted while the panel is open and clear the highlight whenever it closes. Do not replace the panel with `NSMenu`, because the system menu window adds an unavoidable outer frame. The upper section contains the real weekly quota, reset/check times, progress bar, and monthly token chart. The lower section contains a 60-second CPU chart, a visual fan beside the CPU label, and memory pressure. Do not add a login item unless the user explicitly requests it.
 
 Keep the stable bundle identifier `local.codex.quota.menubar.v5`. Do not reuse the retired `local.codex.quota.menubar`, `local.codex.quota.menubar.v2`, `local.codex.quota.menubar.v3`, or `local.codex.quota.menubar.v4` identifiers: macOS 26 cached those identities with conflicting or off-screen status-item positions, and multiple archived v3 app copies shared the same LaunchServices identity. Keep the production status item unnamed and do not set `autosaveName`, so AppKit assigns a safe current-screen position instead of restoring a stale private status-item record.
 
 ## Data Rules
 
 - Launch the local Codex App Server with stdio transport for each refresh.
-- Request account/rateLimits/read and accept only a primary window whose duration is 10080 minutes.
-- Calculate remaining percentage as 100 minus usedPercent.
+- Request account/rateLimits/read and inspect both `primary` and `secondary` in the direct and by-limit-id responses.
+- Treat a 300-minute window as the optional five-hour quota and a 10080-minute window as the weekly quota. Reject other durations.
+- Calculate each remaining percentage as 100 minus usedPercent.
+- Show `5h 80% · 7d 97%` in the menu bar when both windows exist. If the five-hour window is absent, show only the original weekly percentage such as `97%`.
+- Keep the expanded dashboard weekly-only; do not add the five-hour quota or its reset time to the panel.
 - Refresh at launch, whenever the panel opens, and every three minutes.
 - Show an em dash and “暂时无法读取” on any failure. Never substitute sample, stale, 15-minute, or one-hour data.
 - Use the bundled dark and light Codex icon assets; do not read icons from ChatGPT.app at runtime.

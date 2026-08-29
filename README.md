@@ -1,13 +1,13 @@
-# Codex Weekly Quota Menu Bar (Unofficial)
+# Codex Quota Menu Bar (Unofficial)
 
 An unofficial, local-first macOS menu bar utility and Codex Skill for viewing
-the remaining weekly Codex quota together with lightweight Mac CPU and memory
-pressure information.
+the remaining five-hour and weekly Codex quotas together with lightweight Mac
+CPU and memory-pressure information.
 
 ## Preview
 
 <p align="center">
-  <img src="codex-quota-menubar/assets/screenshots/codex-quota-dashboard.png" alt="Codex weekly quota and local Mac status dashboard" width="470">
+  <img src="codex-quota-menubar/assets/screenshots/codex-quota-dashboard.png" alt="Codex quota and local Mac status dashboard" width="470">
 </p>
 
 ## Download
@@ -26,8 +26,10 @@ pressure information.
 ## Features
 
 - Native AppKit menu bar utility for macOS 13 or newer
-- Real weekly remaining percentage from the local Codex App Server
-- Reset time, refresh time, remaining-quota progress, and monthly token chart
+- Compact five-hour and weekly remaining percentages from the local Codex App Server
+- Weekly-only fallback for accounts without a five-hour quota window
+- Weekly reset time, refresh time, remaining-quota progress, and monthly token chart
+- Native menu bar highlight while the borderless dashboard is open
 - 60-second local CPU history and macOS memory-pressure status
 - Borderless dark dashboard with no login item or extra permissions
 - Source-only repository with repeatable build and verification scripts
@@ -57,7 +59,7 @@ open dist/CodexQuotaMenuBar.app
 `build_app.sh` compiles the Objective-C source, packages the three local image
 assets, performs an ad-hoc signature, and runs parser self-tests.
 `verify_app.sh` additionally verifies the bundle signature, samples local Mac
-status, and performs a real weekly quota read. A passing self-test alone does
+status, and performs a real five-hour and weekly quota read. A passing self-test alone does
 not prove that the live quota read succeeded.
 
 ## Repository contents

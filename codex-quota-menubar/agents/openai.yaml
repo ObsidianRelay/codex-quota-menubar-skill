@@ -1,7 +1,7 @@
 interface:
   display_name: "Codex 额度菜单栏"
-  short_description: "构建、运行和排查 macOS Codex 每周额度菜单栏工具"
+  short_description: "构建、运行和排查 macOS Codex 五小时与每周额度菜单栏"
   icon_small: "./assets/icon-codex-light.png"
   icon_large: "./assets/icon-codex-dark-color.png"
   brand_color: "#5968FF"
-  default_prompt: "Use $codex-quota-menubar to build, run, or troubleshoot the local Codex weekly quota menu bar app."
+  default_prompt: "Use $codex-quota-menubar to build, run, or troubleshoot the local macOS Codex five-hour and weekly quota menu bar app."
