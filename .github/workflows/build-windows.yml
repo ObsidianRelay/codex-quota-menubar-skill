@@ -1,0 +1,45 @@
+name: Build Windows test installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "codex-quota-orb-windows/**"
+      - ".github/workflows/build-windows.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: codex-quota-orb-windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: codex-quota-orb-windows/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and test Windows installer
+        run: npm run build:win
+
+      - name: Upload unsigned test installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: CodexQuotaOrb-Setup-0.1.0-x64
+          path: codex-quota-orb-windows/release/CodexQuotaOrb-Setup-0.1.0-x64.exe
+          if-no-files-found: error
+          retention-days: 14

@@ -1,8 +1,8 @@
-# Codex Quota Menu Bar (Unofficial)
+# Codex Quota Utilities (Unofficial)
 
-An unofficial, local-first macOS menu bar utility and Codex Skill for viewing
-the remaining five-hour and weekly Codex quotas together with lightweight Mac
-CPU and memory-pressure information.
+Unofficial, local-first Codex quota utilities for macOS and Windows. The macOS
+app uses a native menu bar dashboard. The Windows app uses a transparent
+floating quota orb that appears while Codex is running.
 
 ## Preview
 
@@ -10,7 +10,7 @@ CPU and memory-pressure information.
   <img src="codex-quota-menubar/assets/screenshots/codex-quota-dashboard.png" alt="Codex quota and local Mac status dashboard" width="470">
 </p>
 
-## Download
+## macOS download
 
 <p align="center">
   <a href="https://github.com/ObsidianRelay/codex-quota-menubar-skill/releases/latest/download/CodexQuotaMenuBar-macOS-arm64.zip">
@@ -18,12 +18,25 @@ CPU and memory-pressure information.
   </a>
 </p>
 
+## Windows test build
+
+The Windows 10/11 x64 version lives in `codex-quota-orb-windows/`. It displays
+five-hour and weekly quota values in a movable floating orb and expands into a
+weekly quota and monthly token-usage panel.
+
+The first Windows build is an unsigned test version. Its GitHub Actions
+workflow produces `CodexQuotaOrb-Setup-0.1.0-x64.exe` as a workflow artifact
+for real-device acceptance testing. Windows may show a SmartScreen warning
+because Authenticode signing is not configured yet.
+
 <p align="center">
   macOS 13 or later · Apple silicon (M1 or newer) ·
   <a href="https://github.com/ObsidianRelay/codex-quota-menubar-skill/releases/latest">Release notes and SHA-256</a>
 </p>
 
 ## Features
+
+### macOS
 
 - Native AppKit menu bar utility for macOS 13 or newer
 - Compact five-hour and weekly remaining percentages from the local Codex App Server
@@ -33,6 +46,17 @@ CPU and memory-pressure information.
 - 60-second local CPU history and macOS memory-pressure status
 - Borderless dark dashboard with no login item or extra permissions
 - Source-only repository with repeatable build and verification scripts
+
+### Windows
+
+- Transparent 112×112 floating quota orb with five-hour and weekly quota values
+- Weekly quota liquid level and a 0.75-second orb-to-panel expansion
+- Weekly reset countdown, refresh time, monthly token total, daily chart,
+  average, and peak usage
+- Automatic show/hide based on the Codex desktop process
+- Dragging, edge snapping, saved position, and multi-display correction
+- Tray controls, single-instance protection, and current-user login startup
+- Local App Server access only; no telemetry, browser cookies, or token storage
 
 ## Privacy
 
@@ -65,6 +89,13 @@ not prove that the live quota read succeeded.
 ## Repository contents
 
 ```text
+codex-quota-orb-windows/
+├── src/
+├── assets/
+├── scripts/
+├── package.json
+└── README.md
+
 codex-quota-menubar/
 ├── SKILL.md
 ├── agents/openai.yaml
