@@ -1,4 +1,10 @@
-import type {ExpansionDirection, OrbPoint} from "../shared/types";
+import {
+  ORB_SIZE_BY_PRESET,
+  PANEL_SIZE,
+  type ExpansionDirection,
+  type OrbPoint,
+  type OrbSizePreset,
+} from "../shared/types";
 
 export type Bounds = {
   x: number;
@@ -7,35 +13,41 @@ export type Bounds = {
   height: number;
 };
 
-export const ORB_SIZE = 112;
-export const PANEL_SIZE = {width: 470, height: 390};
 export const EDGE_MARGIN = 12;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
-export const clampOrbCenter = (point: OrbPoint, workArea: Bounds): OrbPoint => ({
+export const clampOrbCenter = (
+  point: OrbPoint,
+  workArea: Bounds,
+  orbSize = ORB_SIZE_BY_PRESET.medium,
+): OrbPoint => ({
   x: clamp(
     point.x,
-    workArea.x + EDGE_MARGIN + ORB_SIZE / 2,
-    workArea.x + workArea.width - EDGE_MARGIN - ORB_SIZE / 2,
+    workArea.x + EDGE_MARGIN + orbSize / 2,
+    workArea.x + workArea.width - EDGE_MARGIN - orbSize / 2,
   ),
   y: clamp(
     point.y,
-    workArea.y + EDGE_MARGIN + ORB_SIZE / 2,
-    workArea.y + workArea.height - EDGE_MARGIN - ORB_SIZE / 2,
+    workArea.y + EDGE_MARGIN + orbSize / 2,
+    workArea.y + workArea.height - EDGE_MARGIN - orbSize / 2,
   ),
 });
 
-export const snapOrbCenter = (point: OrbPoint, workArea: Bounds): OrbPoint => {
-  const clamped = clampOrbCenter(point, workArea);
+export const snapOrbCenter = (
+  point: OrbPoint,
+  workArea: Bounds,
+  orbSize = ORB_SIZE_BY_PRESET.medium,
+): OrbPoint => {
+  const clamped = clampOrbCenter(point, workArea, orbSize);
   const edges = [
     {edge: "left", distance: clamped.x - workArea.x},
     {edge: "right", distance: workArea.x + workArea.width - clamped.x},
     {edge: "top", distance: clamped.y - workArea.y},
     {edge: "bottom", distance: workArea.y + workArea.height - clamped.y},
   ].sort((a, b) => a.distance - b.distance);
-  const inset = EDGE_MARGIN + ORB_SIZE / 2;
+  const inset = EDGE_MARGIN + orbSize / 2;
   const snapped = {...clamped};
   if (edges[0].edge === "left") snapped.x = workArea.x + inset;
   if (edges[0].edge === "right") snapped.x = workArea.x + workArea.width - inset;
@@ -47,8 +59,9 @@ export const snapOrbCenter = (point: OrbPoint, workArea: Bounds): OrbPoint => {
 export const chooseExpansionDirection = (
   orb: OrbPoint,
   workArea: Bounds,
+  orbSize = ORB_SIZE_BY_PRESET.medium,
 ): ExpansionDirection => {
-  const half = ORB_SIZE / 2;
+  const half = orbSize / 2;
   const distanceToEdges = [
     {edge: "top", distance: orb.y - half - workArea.y},
     {edge: "right", distance: workArea.x + workArea.width - orb.x - half},
@@ -83,19 +96,23 @@ export const chooseExpansionDirection = (
   );
 };
 
-export const collapsedBoundsForCenter = (orb: OrbPoint): Bounds => ({
-  x: Math.round(orb.x - ORB_SIZE / 2),
-  y: Math.round(orb.y - ORB_SIZE / 2),
-  width: ORB_SIZE,
-  height: ORB_SIZE,
+export const collapsedBoundsForCenter = (
+  orb: OrbPoint,
+  orbSize = ORB_SIZE_BY_PRESET.medium,
+): Bounds => ({
+  x: Math.round(orb.x - orbSize / 2),
+  y: Math.round(orb.y - orbSize / 2),
+  width: orbSize,
+  height: orbSize,
 });
 
 export const expandedBoundsForCenter = (
   orb: OrbPoint,
   direction: ExpansionDirection,
   workArea: Bounds,
+  orbSize = ORB_SIZE_BY_PRESET.medium,
 ): Bounds => {
-  const half = ORB_SIZE / 2;
+  const half = orbSize / 2;
   let x = orb.x - half;
   let y = orb.y - half;
   if (direction === "left") x = orb.x + half - PANEL_SIZE.width;
@@ -110,14 +127,4 @@ export const expandedBoundsForCenter = (
   };
 };
 
-export const easeOutQuint = (value: number) => 1 - Math.pow(1 - value, 5);
-
-export const interpolateBounds = (from: Bounds, to: Bounds, progress: number): Bounds => {
-  const eased = easeOutQuint(clamp(progress, 0, 1));
-  return {
-    x: Math.round(from.x + (to.x - from.x) * eased),
-    y: Math.round(from.y + (to.y - from.y) * eased),
-    width: Math.round(from.width + (to.width - from.width) * eased),
-    height: Math.round(from.height + (to.height - from.height) * eased),
-  };
-};
+export const orbPixelsForPreset = (preset: OrbSizePreset) => ORB_SIZE_BY_PRESET[preset];

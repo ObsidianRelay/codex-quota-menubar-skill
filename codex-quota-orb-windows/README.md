@@ -5,9 +5,10 @@ Codex Quota Orb 是一个仅在本机运行的 Windows 额度悬浮球。它在�
 ## 第一版范围
 
 - Windows 10/11 x64。
-- 112×112 透明紫色液体悬浮球。
+- 88×88、112×112、136×136 三档透明紫色液体悬浮球。
+- 可在托盘菜单或右键菜单切换 88×88、112×112、136×136 三档尺寸。
 - 5h 与 7d 在球内上下显示；液位代表 7d 剩余额度。
-- 750ms 展开为只包含 7d 和 Token 统计的面板。
+- 320ms 展开、260ms 收起为只包含 7d 和 Token 统计的面板。
 - 登录后台启动，Codex 启动时显示、退出时隐藏。
 - 本地数据处理，不上传遥测，不保存账号令牌。
 
@@ -27,7 +28,7 @@ npm run dev
 GitHub Actions 的 `Build Windows test installer` 工作流会生成：
 
 ```text
-CodexQuotaOrb-Setup-0.1.0-x64.exe
+CodexQuotaOrb-Setup-0.1.1-x64.exe
 ```
 
 该测试包未进行 Authenticode 签名，Windows SmartScreen 可能显示未知发布者提示。

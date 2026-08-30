@@ -25,7 +25,7 @@ five-hour and weekly quota values in a movable floating orb and expands into a
 weekly quota and monthly token-usage panel.
 
 The first Windows build is an unsigned test version. Its GitHub Actions
-workflow produces `CodexQuotaOrb-Setup-0.1.0-x64.exe` as a workflow artifact
+workflow produces `CodexQuotaOrb-Setup-0.1.1-x64.exe` as a workflow artifact
 for real-device acceptance testing. Windows may show a SmartScreen warning
 because Authenticode signing is not configured yet.
 
@@ -50,7 +50,8 @@ because Authenticode signing is not configured yet.
 ### Windows
 
 - Transparent 112×112 floating quota orb with five-hour and weekly quota values
-- Weekly quota liquid level and a 0.75-second orb-to-panel expansion
+- Small, medium, and large orb sizes from the tray or orb context menu
+- Weekly quota liquid level with a 320ms expansion and 260ms collapse
 - Weekly reset countdown, refresh time, monthly token total, daily chart,
   average, and peak usage
 - Automatic show/hide based on the Codex desktop process

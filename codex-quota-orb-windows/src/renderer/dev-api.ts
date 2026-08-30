@@ -15,16 +15,48 @@ const mockSnapshot: QuotaSnapshot = {
 };
 
 export const createDevApi = (): RendererApi => {
-  let mode: WindowMode = {isOpen: false, direction: "down"};
+  let mode: WindowMode = {
+    phase: "collapsed",
+    direction: "down",
+    originX: 358,
+    originY: 0,
+    orbSizePreset: "medium",
+    orbSize: 112,
+  };
   const modeListeners = new Set<(value: WindowMode) => void>();
+  const publishMode = () => {
+    for (const listener of modeListeners) listener(mode);
+  };
 
   return {
     getSnapshot: async () => mockSnapshot,
     refresh: async () => mockSnapshot,
     toggleWindow: () => {
-      mode = {...mode, isOpen: !mode.isOpen};
-      document.body.classList.toggle("preview-open", mode.isOpen);
-      for (const listener of modeListeners) listener(mode);
+      if (mode.phase === "collapsed") {
+        mode = {...mode, phase: "opening-prep"};
+        publishMode();
+      } else if (mode.phase === "expanded") {
+        mode = {...mode, phase: "closing"};
+        document.body.classList.remove("preview-open");
+        publishMode();
+      }
+    },
+    showOrbSizeMenu: () => {},
+    notifyWindowPrepared: (stage) => {
+      if (mode.phase !== "opening-prep" || stage !== "expanded-bounds") return;
+      document.body.classList.add("preview-open");
+      mode = {...mode, phase: "opening"};
+      publishMode();
+    },
+    notifyWindowTransitionComplete: (transition) => {
+      if (transition === "opening" && mode.phase === "opening") {
+        mode = {...mode, phase: "expanded"};
+        publishMode();
+      }
+      if (transition === "closing" && mode.phase === "closing") {
+        mode = {...mode, phase: "collapsed"};
+        publishMode();
+      }
     },
     beginDrag: () => {},
     dragTo: () => {},

@@ -34,7 +34,6 @@ body.browser-preview #root {
   right: 24px;
   width: 112px;
   height: 112px;
-  transition: width 600ms cubic-bezier(0.34, 0, 0.18, 1), height 600ms cubic-bezier(0.34, 0, 0.18, 1);
 }
 
 body.browser-preview.preview-open #root {
@@ -44,42 +43,96 @@ body.browser-preview.preview-open #root {
 
 .orb-shell {
   --liquid-height: 65%;
-  width: 100%;
-  height: 100%;
-  padding: 2px;
-  background: transparent;
-}
-
-.orb-surface {
+  --origin-x: 0px;
+  --origin-y: 0px;
+  --orb-size: 112px;
+  --orb-gap: 4px;
+  --five-label-size: 8px;
+  --five-value-size: 14px;
+  --week-label-size: 10px;
+  --week-value-size: 23px;
+  --wave-height: 20px;
+  --wave-top: -9px;
   position: relative;
   width: 100%;
   height: 100%;
+  padding: 0;
+  contain: layout paint style;
+  background: transparent;
+}
+
+.size-small {
+  --orb-gap: 3px;
+  --five-label-size: 6.3px;
+  --five-value-size: 11px;
+  --week-label-size: 8px;
+  --week-value-size: 18px;
+  --wave-height: 16px;
+  --wave-top: -7px;
+}
+
+.size-large {
+  --orb-gap: 5px;
+  --five-label-size: 9.7px;
+  --five-value-size: 17px;
+  --week-label-size: 12px;
+  --week-value-size: 28px;
+  --wave-height: 24px;
+  --wave-top: -11px;
+}
+
+.orb-surface {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  border: 1.5px solid rgba(142, 208, 249, 0.55);
+  border: 1px solid rgba(146, 175, 255, 0.62);
   border-radius: 50%;
+  background-clip: padding-box;
   background:
-    radial-gradient(circle at 27% 13%, rgba(255, 255, 255, 0.17), transparent 28%),
-    linear-gradient(145deg, rgba(12, 31, 54, 0.96), rgba(6, 18, 37, 0.98));
+    radial-gradient(circle at 25% 12%, rgba(255, 255, 255, 0.13), transparent 29%),
+    linear-gradient(145deg, rgba(13, 30, 52, 0.98), rgba(7, 17, 36, 0.99));
   box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 -18px 42px rgba(87, 64, 220, 0.13),
-    0 12px 34px rgba(0, 4, 18, 0.48),
-    0 0 25px rgba(56, 132, 232, 0.2);
+    inset 0 1px 0 rgba(229, 224, 255, 0.22),
+    inset 0 -18px 42px rgba(83, 57, 205, 0.12);
   cursor: pointer;
   touch-action: none;
-  transition:
-    border-radius 750ms cubic-bezier(0.34, 0, 0.18, 1),
-    box-shadow 750ms ease;
+  will-change: left, top, width, height, border-radius;
+  transition-property: left, top, width, height, border-radius;
+  transition-duration: 0ms;
 }
 
-.is-open .orb-surface {
+.phase-opening .orb-surface,
+.phase-expanded .orb-surface {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
   border-radius: 28px;
   cursor: default;
-  animation: settle-glow 750ms cubic-bezier(0.34, 0, 0.18, 1) both;
 }
 
-.is-closed .orb-surface {
-  transition-duration: 1430ms;
+.phase-opening .orb-surface {
+  transition-duration: 320ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-width: 200px) {
+  .phase-opening-prep .orb-surface,
+  .phase-closing .orb-surface {
+    left: var(--origin-x);
+    top: var(--origin-y);
+    width: var(--orb-size);
+    height: var(--orb-size);
+    border-radius: 50%;
+  }
+
+  .phase-closing .orb-surface {
+    transition-duration: 260ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
 .liquid {
@@ -88,40 +141,59 @@ body.browser-preview.preview-open #root {
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(var(--liquid-height) + 9px);
+  height: calc(var(--liquid-height) + 8px);
   min-height: 0;
   overflow: hidden;
-  background: linear-gradient(145deg, #a489ff 0%, #7458f6 50%, #5128c8 100%);
-  box-shadow: inset 0 11px 23px rgba(220, 204, 255, 0.1);
-  transition: height 750ms cubic-bezier(0.34, 0, 0.18, 1), opacity 350ms ease;
+  background:
+    radial-gradient(85% 34% at 42% 0%, rgba(221, 211, 255, 0.2), transparent 72%),
+    linear-gradient(180deg, #927cf8 0%, #7359ed 48%, #5031c4 100%);
+  box-shadow:
+    inset 0 10px 18px rgba(226, 216, 255, 0.08),
+    inset 0 -14px 24px rgba(42, 22, 135, 0.12);
+  transition-property: height, opacity;
+  transition-duration: 0ms;
 }
 
-.is-closed .liquid {
-  transition-duration: 1430ms;
+.phase-opening .liquid {
+  opacity: 0.16;
+  transition-duration: 320ms, 120ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease-out;
 }
 
-.is-open .liquid {
-  opacity: 0.34;
+.phase-expanded .liquid {
+  opacity: 0.16;
+}
+
+.phase-closing .liquid {
+  transition-duration: 260ms, 100ms;
+  transition-delay: 0ms, 140ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1), ease-out;
 }
 
 .liquid-wave {
   position: absolute;
   left: -10%;
-  top: -19px;
+  top: var(--wave-top);
   width: 120%;
-  height: 36px;
+  height: var(--wave-height);
   overflow: visible;
+  will-change: transform;
 }
 
 .wave-back {
-  fill: rgba(157, 134, 255, 0.85);
-  animation: wave-left 4.8s linear infinite;
+  fill: rgba(198, 184, 255, 0.3);
+  animation: wave-left 9.2s linear infinite;
 }
 
 .wave-front {
-  fill: rgba(118, 83, 239, 0.91);
-  filter: drop-shadow(0 -1px 2px rgba(233, 225, 255, 0.58));
-  animation: wave-right 3.6s linear infinite;
+  fill: rgba(139, 111, 244, 0.45);
+  animation: wave-right 6.8s linear infinite;
+}
+
+.phase-opening-prep .liquid-wave,
+.phase-opening .liquid-wave,
+.phase-closing .liquid-wave {
+  animation-play-state: paused;
 }
 
 .glass-highlight {
@@ -132,15 +204,19 @@ body.browser-preview.preview-open #root {
   width: 42%;
   height: 10%;
   border-radius: 50%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent);
-  filter: blur(4px);
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.16), transparent 72%);
   transform: rotate(-5deg);
   pointer-events: none;
-  transition: opacity 350ms ease;
+  transition: opacity 120ms ease;
 }
 
-.is-open .glass-highlight {
-  opacity: 0.15;
+.phase-opening .glass-highlight,
+.phase-expanded .glass-highlight {
+  opacity: 0.1;
+}
+
+.phase-closing .glass-highlight {
+  transition-delay: 140ms;
 }
 
 .orb-data {
@@ -151,13 +227,13 @@ body.browser-preview.preview-open #root {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--orb-gap);
   width: 100%;
   transform: translate(-50%, -50%);
   color: white;
   text-align: center;
   text-shadow: 0 2px 10px rgba(15, 6, 55, 0.82), 0 0 10px rgba(194, 174, 255, 0.28);
-  transition: opacity 150ms ease, transform 220ms ease;
+  transition: opacity 100ms ease, transform 160ms ease;
 }
 
 .quota-line {
@@ -172,13 +248,13 @@ body.browser-preview.preview-open #root {
 }
 
 .quota-line-five span {
-  font-size: 8px;
+  font-size: var(--five-label-size);
   font-weight: 700;
   letter-spacing: 0.35px;
 }
 
 .quota-line-five strong {
-  font-size: 14px;
+  font-size: var(--five-value-size);
   line-height: 1;
   font-weight: 760;
 }
@@ -188,21 +264,26 @@ body.browser-preview.preview-open #root {
 }
 
 .quota-line-week span {
-  font-size: 10px;
+  font-size: var(--week-label-size);
   font-weight: 720;
   letter-spacing: 0.4px;
 }
 
 .quota-line-week strong {
-  font-size: 23px;
+  font-size: var(--week-value-size);
   line-height: 1;
   font-weight: 820;
 }
 
-.is-open .orb-data {
+.phase-opening .orb-data,
+.phase-expanded .orb-data {
   opacity: 0;
   transform: translate(-50%, -42%) scale(0.96);
   pointer-events: none;
+}
+
+.phase-closing .orb-data {
+  transition-delay: 160ms;
 }
 
 .panel-content {
@@ -213,11 +294,24 @@ body.browser-preview.preview-open #root {
   opacity: 0;
   transform: translateY(5px) scale(0.986);
   pointer-events: none;
+  transition: opacity 90ms ease, transform 140ms ease;
 }
 
-.is-open .panel-content {
-  animation: panel-reveal 750ms cubic-bezier(0.34, 0, 0.18, 1) both;
+.phase-opening .panel-content,
+.phase-expanded .panel-content {
+  opacity: 1;
+  transform: translateY(0) scale(1);
   pointer-events: auto;
+}
+
+.phase-opening .panel-content {
+  transition-duration: 150ms, 180ms;
+  transition-delay: 90ms;
+}
+
+.phase-closing .panel-content {
+  transition-duration: 90ms;
+  transition-delay: 0ms;
 }
 
 .panel-header,
@@ -389,24 +483,13 @@ body.browser-preview.preview-open #root {
 }
 
 @keyframes wave-left {
-  from { transform: translateX(0); }
-  to { transform: translateX(-8%); }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-8%, 0, 0); }
 }
 
 @keyframes wave-right {
-  from { transform: translateX(-7%); }
-  to { transform: translateX(2%); }
-}
-
-@keyframes panel-reveal {
-  0%, 56% { opacity: 0; transform: translateY(5px) scale(0.986); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes settle-glow {
-  0% { filter: brightness(1); }
-  80% { filter: brightness(1.035); }
-  100% { filter: brightness(1); }
+  from { transform: translate3d(-7%, 0, 0); }
+  to { transform: translate3d(2%, 0, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {

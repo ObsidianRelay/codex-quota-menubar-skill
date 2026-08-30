@@ -1,13 +1,25 @@
 import {mkdir, readFile, rename, writeFile} from "node:fs/promises";
 import path from "node:path";
-import type {OrbPoint} from "../shared/types";
+import {
+  DEFAULT_ORB_SIZE_PRESET,
+  type OrbPoint,
+  type OrbSizePreset,
+} from "../shared/types";
 
 export type StoredSettings = {
   initialized: boolean;
   orbCenter: OrbPoint | null;
+  orbSizePreset: OrbSizePreset;
 };
 
-const defaults: StoredSettings = {initialized: false, orbCenter: null};
+const defaults: StoredSettings = {
+  initialized: false,
+  orbCenter: null,
+  orbSizePreset: DEFAULT_ORB_SIZE_PRESET,
+};
+
+const isOrbSizePreset = (value: unknown): value is OrbSizePreset =>
+  value === "small" || value === "medium" || value === "large";
 
 export class SettingsStore {
   private value: StoredSettings = {...defaults};
@@ -28,6 +40,9 @@ export class SettingsStore {
           Number.isFinite(parsed.orbCenter.y)
             ? parsed.orbCenter
             : null,
+        orbSizePreset: isOrbSizePreset(parsed.orbSizePreset)
+          ? parsed.orbSizePreset
+          : DEFAULT_ORB_SIZE_PRESET,
       };
     } catch {
       this.value = {...defaults};

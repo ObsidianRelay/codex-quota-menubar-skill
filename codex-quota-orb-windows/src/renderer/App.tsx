@@ -1,5 +1,10 @@
-import {useEffect, useMemo, useRef, useState} from "react";
-import {emptySnapshot, type QuotaSnapshot, type WindowMode} from "../shared/types";
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
+import {
+  emptySnapshot,
+  PANEL_SIZE,
+  type QuotaSnapshot,
+  type WindowMode,
+} from "../shared/types";
 
 const formatPercent = (value: number | null) => (value === null ? "—" : `${value}%`);
 
@@ -45,7 +50,14 @@ type DragInfo = {
 
 export function App() {
   const [snapshot, setSnapshot] = useState<QuotaSnapshot>(() => emptySnapshot("正在读取"));
-  const [mode, setMode] = useState<WindowMode>({isOpen: false, direction: "down"});
+  const [mode, setMode] = useState<WindowMode>({
+    phase: "collapsed",
+    direction: "down",
+    originX: 0,
+    originY: 0,
+    orbSizePreset: "medium",
+    orbSize: 112,
+  });
   const [now, setNow] = useState(() => Date.now());
   const drag = useRef<DragInfo | null>(null);
 
@@ -61,14 +73,44 @@ export function App() {
     };
   }, []);
 
+  useLayoutEffect(() => {
+    if (mode.phase !== "opening-prep") return;
+    let cancelled = false;
+    let boundsNotified = false;
+    const surfaceFrame = window.requestAnimationFrame(() => {
+      if (!cancelled) window.codexQuotaOrb.notifyWindowPrepared("surface");
+    });
+    const notifyExpandedBounds = () => {
+      if (
+        boundsNotified ||
+        window.innerWidth < PANEL_SIZE.width - 1 ||
+        window.innerHeight < PANEL_SIZE.height - 1
+      ) return;
+      boundsNotified = true;
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          if (!cancelled) window.codexQuotaOrb.notifyWindowPrepared("expanded-bounds");
+        });
+      });
+    };
+    window.addEventListener("resize", notifyExpandedBounds);
+    notifyExpandedBounds();
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(surfaceFrame);
+      window.removeEventListener("resize", notifyExpandedBounds);
+    };
+  }, [mode.phase]);
+
   const usage = useMemo(() => usageSummary(snapshot), [snapshot]);
   const maximumDaily = Math.max(1, ...snapshot.dailyUsage.map((item) => item.tokens));
   const weekly = snapshot.remaining7d;
-  const liquidHeight = weekly === null ? 0 : mode.isOpen ? 8 : weekly;
+  const panelVisible = mode.phase === "opening" || mode.phase === "expanded";
+  const liquidHeight = weekly === null ? 0 : panelVisible ? 8 : weekly;
   const activeSegments = weekly === null ? 0 : Math.round((weekly / 100) * 14);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
-    if (mode.isOpen || event.button !== 0) return;
+    if (mode.phase !== "collapsed" || event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = {
       pointerId: event.pointerId,
@@ -103,14 +145,38 @@ export function App() {
     window.codexQuotaOrb.endDrag(false);
   };
 
+  const handleTransitionEnd = (event: React.TransitionEvent<HTMLElement>) => {
+    if (event.target !== event.currentTarget || event.propertyName !== "width") return;
+    if (mode.phase === "opening") {
+      window.codexQuotaOrb.notifyWindowTransitionComplete("opening");
+    }
+    if (mode.phase === "closing") {
+      window.codexQuotaOrb.notifyWindowTransitionComplete("closing");
+    }
+  };
+
+  const handleContextMenu = (event: React.MouseEvent<HTMLElement>) => {
+    if (mode.phase !== "collapsed") return;
+    event.preventDefault();
+    window.codexQuotaOrb.showOrbSizeMenu();
+  };
+
   return (
     <main
-      className={`orb-shell ${mode.isOpen ? "is-open" : "is-closed"} direction-${mode.direction}`}
-      style={{"--liquid-height": `${liquidHeight}%`} as React.CSSProperties}
+      className={`orb-shell phase-${mode.phase} size-${mode.orbSizePreset} direction-${mode.direction}`}
+      style={{
+        "--liquid-height": `${liquidHeight}%`,
+        "--orb-size": `${mode.orbSize}px`,
+        "--orb-scale": mode.orbSize / 112,
+        "--origin-x": `${mode.originX}px`,
+        "--origin-y": `${mode.originY}px`,
+      } as React.CSSProperties}
       title={snapshot.error ?? "Codex Quota Orb"}
     >
       <section
         className="orb-surface"
+        onTransitionEnd={handleTransitionEnd}
+        onContextMenu={handleContextMenu}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -118,11 +184,11 @@ export function App() {
       >
         {weekly !== null && (
           <div className="liquid" aria-hidden="true">
-            <svg className="liquid-wave wave-back" viewBox="0 0 1000 90" preserveAspectRatio="none">
-              <path d="M-100 44 C40 18 150 70 290 43 S540 19 680 45 S930 67 1100 35 V100 H-100 Z" />
+            <svg className="liquid-wave wave-back" viewBox="0 0 1000 40" preserveAspectRatio="none">
+              <path d="M-100 19 C70 16 185 23 340 19 S610 16 760 20 S980 22 1100 18 V44 H-100 Z" />
             </svg>
-            <svg className="liquid-wave wave-front" viewBox="0 0 1000 90" preserveAspectRatio="none">
-              <path d="M-100 42 C80 67 180 18 350 43 S650 68 790 38 S980 25 1100 53 V100 H-100 Z" />
+            <svg className="liquid-wave wave-front" viewBox="0 0 1000 40" preserveAspectRatio="none">
+              <path d="M-100 20 C80 23 205 16 360 20 S635 24 790 19 S985 17 1100 22 V44 H-100 Z" />
             </svg>
           </div>
         )}

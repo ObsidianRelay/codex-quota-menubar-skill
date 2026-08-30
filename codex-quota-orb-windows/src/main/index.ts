@@ -1,5 +1,6 @@
 import {
   app,
+  BrowserWindow,
   ipcMain,
   Menu,
   nativeImage,
@@ -7,7 +8,13 @@ import {
   Tray,
 } from "electron";
 import path from "node:path";
-import {emptySnapshot, type QuotaSnapshot} from "../shared/types";
+import {
+  emptySnapshot,
+  type OrbSizePreset,
+  type QuotaSnapshot,
+  type WindowPreparedStage,
+  type WindowTransition,
+} from "../shared/types";
 import {CodexProcessMonitor, type CodexProcessState} from "./codex-process";
 import {CodexQuotaReader} from "./quota-reader";
 import {SettingsStore} from "./settings";
@@ -59,6 +66,20 @@ const setLoginEnabled = (enabled: boolean) => {
   });
 };
 
+const sizeLabels: Record<OrbSizePreset, string> = {
+  small: "小（88 × 88）",
+  medium: "中（112 × 112）",
+  large: "大（136 × 136）",
+};
+
+const buildSizeMenu = () =>
+  (Object.keys(sizeLabels) as OrbSizePreset[]).map((preset) => ({
+    label: sizeLabels[preset],
+    type: "radio" as const,
+    checked: controller?.sizePreset === preset,
+    click: () => controller?.setOrbSize(preset),
+  }));
+
 const rebuildTrayMenu = () => {
   if (!tray) return;
   const openAtLogin = app.getLoginItemSettings({args: ["--background"]}).openAtLogin;
@@ -86,6 +107,10 @@ const rebuildTrayMenu = () => {
           setLoginEnabled(item.checked);
           rebuildTrayMenu();
         },
+      },
+      {
+        label: "悬浮球尺寸",
+        submenu: buildSizeMenu(),
       },
       {type: "separator"},
       {
@@ -117,6 +142,14 @@ const registerIpc = () => {
     if (controller && !controller.isOpen) void refreshQuota();
     void controller?.toggle();
   });
+  ipcMain.on("window:size-menu", (event) => {
+    const owner = BrowserWindow.fromWebContents(event.sender) ?? controller?.browserWindow ?? undefined;
+    Menu.buildFromTemplate(buildSizeMenu()).popup({window: owner});
+  });
+  ipcMain.on("window:prepared", (_event, stage: WindowPreparedStage) =>
+    controller?.handleRendererPrepared(stage));
+  ipcMain.on("window:transition-complete", (_event, transition: WindowTransition) =>
+    controller?.handleTransitionComplete(transition));
   ipcMain.on("window:drag-start", (_event, x: number, y: number) => controller?.beginDrag(x, y));
   ipcMain.on("window:drag-move", (_event, x: number, y: number) => controller?.dragTo(x, y));
   ipcMain.on("window:drag-end", (_event, moved: boolean) => void controller?.endDrag(moved));
@@ -141,7 +174,7 @@ void app.whenReady().then(async () => {
     await settings.update({initialized: true});
   }
 
-  controller = new OrbWindowController(settings);
+  controller = new OrbWindowController(settings, () => rebuildTrayMenu());
   registerIpc();
   await controller.create();
 

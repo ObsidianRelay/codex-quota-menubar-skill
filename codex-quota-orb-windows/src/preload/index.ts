@@ -5,6 +5,10 @@ const api: RendererApi = {
   getSnapshot: () => ipcRenderer.invoke("quota:get") as Promise<QuotaSnapshot>,
   refresh: () => ipcRenderer.invoke("quota:refresh") as Promise<QuotaSnapshot>,
   toggleWindow: () => ipcRenderer.send("window:toggle"),
+  showOrbSizeMenu: () => ipcRenderer.send("window:size-menu"),
+  notifyWindowPrepared: (stage) => ipcRenderer.send("window:prepared", stage),
+  notifyWindowTransitionComplete: (transition) =>
+    ipcRenderer.send("window:transition-complete", transition),
   beginDrag: (screenX, screenY) => ipcRenderer.send("window:drag-start", screenX, screenY),
   dragTo: (screenX, screenY) => ipcRenderer.send("window:drag-move", screenX, screenY),
   endDrag: (moved) => ipcRenderer.send("window:drag-end", moved),
