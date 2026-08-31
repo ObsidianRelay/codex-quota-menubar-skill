@@ -25,7 +25,7 @@ five-hour and weekly quota values in a movable floating orb and expands into a
 weekly quota and monthly token-usage panel.
 
 The first Windows build is an unsigned test version. Its GitHub Actions
-workflow produces `CodexQuotaOrb-Setup-0.1.1-x64.exe` as a workflow artifact
+workflow produces `CodexQuotaOrb-Setup-0.1.3-x64.exe` as a workflow artifact
 for real-device acceptance testing. Windows may show a SmartScreen warning
 because Authenticode signing is not configured yet.
 
@@ -64,7 +64,10 @@ because Authenticode signing is not configured yet.
 The app starts the locally installed Codex App Server over stdio for each quota
 refresh. CPU and memory-pressure samples are read from local macOS APIs. The
 utility does not contain API keys, Telegram IDs, account data, logs, or local
-configuration, and it does not send Mac status data to an external service.
+configuration, and it does not send Mac status data to an external service. The
+Windows app observes mouse-down coordinates only while its quota panel is open
+to dismiss on an outside click; it does not monitor keyboard input or retain
+those coordinates.
 
 ## Requirements
 

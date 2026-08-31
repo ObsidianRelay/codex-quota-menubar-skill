@@ -11,6 +11,7 @@ describe("window motion coordinator", () => {
       ...motion.openingComplete(),
       ...motion.beginClosing(),
       ...motion.closingComplete(),
+      ...motion.collapsedSurfacePrepared(),
     ];
     expect(commands.filter((command) => command === "set-expanded-bounds")).toHaveLength(1);
     expect(commands.filter((command) => command === "set-collapsed-bounds")).toHaveLength(1);
@@ -27,5 +28,44 @@ describe("window motion coordinator", () => {
     motion.expandedBoundsPrepared();
     motion.openingComplete();
     expect(motion.closingComplete()).toEqual([]);
+    expect(motion.collapsedSurfacePrepared()).toEqual([]);
+  });
+
+  it("does not shrink native bounds until the collapsed surface is painted", () => {
+    const motion = new WindowMotionCoordinator();
+    motion.beginOpening();
+    motion.surfacePrepared();
+    motion.expandedBoundsPrepared();
+    motion.openingComplete();
+    motion.beginClosing();
+
+    expect(motion.closingComplete()).toEqual(["publish-mode"]);
+    expect(motion.phase).toBe("closing-ready");
+    expect(motion.isAnimating).toBe(true);
+    expect(motion.closingComplete()).toEqual([]);
+
+    expect(motion.collapsedSurfacePrepared()).toEqual([
+      "set-collapsed-bounds",
+      "publish-mode",
+    ]);
+    expect(motion.phase).toBe("collapsed");
+    expect(motion.collapsedSurfacePrepared()).toEqual([]);
+  });
+
+  it("remembers an outside click that happens before opening finishes", () => {
+    const motion = new WindowMotionCoordinator();
+    motion.beginOpening();
+    motion.surfacePrepared();
+    motion.expandedBoundsPrepared();
+
+    expect(motion.beginClosing()).toEqual([]);
+    expect(motion.phase).toBe("opening");
+    expect(motion.openingComplete()).toEqual(["publish-mode"]);
+    expect(motion.phase).toBe("closing");
+    expect(motion.closingComplete()).toEqual(["publish-mode"]);
+    expect(motion.collapsedSurfacePrepared()).toEqual([
+      "set-collapsed-bounds",
+      "publish-mode",
+    ]);
   });
 });

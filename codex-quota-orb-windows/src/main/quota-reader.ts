@@ -89,7 +89,7 @@ const queryCandidate = (binaryPath: string, timeoutMs: number): Promise<QueryRes
         params: {
           clientInfo: {
             name: "codex-quota-orb",
-            version: "0.1.1",
+            version: "0.1.3",
             title: "Codex Quota Orb",
           },
           capabilities: {experimentalApi: true},

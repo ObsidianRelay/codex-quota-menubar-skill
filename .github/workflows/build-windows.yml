@@ -39,7 +39,7 @@ jobs:
       - name: Upload unsigned test installer
         uses: actions/upload-artifact@v4
         with:
-          name: CodexQuotaOrb-Setup-0.1.1-x64
-          path: codex-quota-orb-windows/release/CodexQuotaOrb-Setup-0.1.1-x64.exe
+          name: CodexQuotaOrb-Setup-0.1.3-x64
+          path: codex-quota-orb-windows/release/CodexQuotaOrb-Setup-0.1.3-x64.exe
           if-no-files-found: error
           retention-days: 14

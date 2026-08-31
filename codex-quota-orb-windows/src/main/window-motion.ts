@@ -8,6 +8,7 @@ export type MotionCommand =
 export class WindowMotionCoordinator {
   private currentPhase: WindowMotionPhase = "collapsed";
   private preparation: "surface" | "expanded-bounds" | null = null;
+  private closeAfterOpening = false;
 
   get phase(): WindowMotionPhase {
     return this.currentPhase;
@@ -16,7 +17,8 @@ export class WindowMotionCoordinator {
   get isAnimating(): boolean {
     return this.currentPhase === "opening-prep" ||
       this.currentPhase === "opening" ||
-      this.currentPhase === "closing";
+      this.currentPhase === "closing" ||
+      this.currentPhase === "closing-ready";
   }
 
   beginOpening(): MotionCommand[] {
@@ -41,11 +43,20 @@ export class WindowMotionCoordinator {
 
   openingComplete(): MotionCommand[] {
     if (this.currentPhase !== "opening") return [];
+    if (this.closeAfterOpening) {
+      this.closeAfterOpening = false;
+      this.currentPhase = "closing";
+      return ["publish-mode"];
+    }
     this.currentPhase = "expanded";
     return ["publish-mode"];
   }
 
   beginClosing(): MotionCommand[] {
+    if (this.currentPhase === "opening-prep" || this.currentPhase === "opening") {
+      this.closeAfterOpening = true;
+      return [];
+    }
     if (this.currentPhase !== "expanded") return [];
     this.currentPhase = "closing";
     return ["publish-mode"];
@@ -53,6 +64,12 @@ export class WindowMotionCoordinator {
 
   closingComplete(): MotionCommand[] {
     if (this.currentPhase !== "closing") return [];
+    this.currentPhase = "closing-ready";
+    return ["publish-mode"];
+  }
+
+  collapsedSurfacePrepared(): MotionCommand[] {
+    if (this.currentPhase !== "closing-ready") return [];
     this.currentPhase = "collapsed";
     return ["set-collapsed-bounds", "publish-mode"];
   }
@@ -60,6 +77,7 @@ export class WindowMotionCoordinator {
   reset(): MotionCommand[] {
     this.currentPhase = "collapsed";
     this.preparation = null;
+    this.closeAfterOpening = false;
     return ["set-collapsed-bounds", "publish-mode"];
   }
 }

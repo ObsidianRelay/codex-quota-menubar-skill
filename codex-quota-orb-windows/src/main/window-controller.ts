@@ -17,6 +17,7 @@ import {
 } from "../shared/types";
 import {SettingsStore} from "./settings";
 import {type MotionCommand, WindowMotionCoordinator} from "./window-motion";
+import {type GlobalMouseHook, OutsideClickMonitor} from "./outside-click-monitor";
 import {
   clampOrbCenter,
   chooseExpansionDirection,
@@ -46,11 +47,20 @@ export class OrbWindowController {
   private prepareTimer: NodeJS.Timeout | null = null;
   private transitionTimer: NodeJS.Timeout | null = null;
   private readonly motion = new WindowMotionCoordinator();
+  private readonly outsideClickMonitor: OutsideClickMonitor;
 
   constructor(
     private readonly settings: SettingsStore,
     private readonly onSizeChanged?: (preset: OrbSizePreset) => void,
-  ) {}
+    globalMouseHook: GlobalMouseHook | null = null,
+  ) {
+    this.outsideClickMonitor = new OutsideClickMonitor(
+      globalMouseHook,
+      () => this.window?.getBounds() ?? null,
+      (point) => process.platform === "win32" ? screen.screenToDipPoint(point) : point,
+      () => this.collapse(),
+    );
+  }
 
   async create(): Promise<BrowserWindow> {
     const stored = this.settings.get();
@@ -92,9 +102,14 @@ export class OrbWindowController {
     window.setSkipTaskbar(true);
     window.webContents.setWindowOpenHandler(() => ({action: "deny"}));
     window.on("blur", () => {
-      if (this.motion.phase === "expanded") this.collapse();
+      if (
+        this.motion.phase === "opening-prep" ||
+        this.motion.phase === "opening" ||
+        this.motion.phase === "expanded"
+      ) this.collapse();
     });
     window.on("closed", () => {
+      this.outsideClickMonitor.stop();
       this.clearTimers();
       this.window = null;
     });
@@ -133,6 +148,11 @@ export class OrbWindowController {
     return this.orbSizePreset;
   }
 
+  shutdown(): void {
+    this.outsideClickMonitor.stop();
+    this.clearTimers();
+  }
+
   show(): void {
     if (!this.window) return;
     if (this.window.webContents.isLoading()) {
@@ -145,6 +165,7 @@ export class OrbWindowController {
 
   hide(): void {
     if (!this.window) return;
+    this.outsideClickMonitor.stop();
     this.pendingSizePreset = null;
     this.clearTimers();
     this.execute(this.motion.reset());
@@ -173,23 +194,44 @@ export class OrbWindowController {
     this.window.show();
     this.window.focus();
     this.execute(this.motion.beginOpening());
+    this.outsideClickMonitor.start();
     this.armPrepareFallback("surface");
   }
 
   collapse(immediate = false): void {
     if (!this.window) return;
     if (immediate) {
+      this.outsideClickMonitor.stop();
       this.clearTimers();
       this.execute(this.motion.reset());
       return;
     }
+    const phaseBeforeClosing = this.motion.phase;
     const commands = this.motion.beginClosing();
+    if (
+      phaseBeforeClosing === "opening-prep" ||
+      phaseBeforeClosing === "opening" ||
+      commands.length > 0
+    ) this.outsideClickMonitor.stop();
     if (commands.length === 0) return;
     this.execute(commands);
     this.armTransitionFallback("closing", CLOSE_MS);
   }
 
   handleRendererPrepared(stage: WindowPreparedStage): void {
+    if (stage === "collapsed-surface") {
+      const commands = this.motion.collapsedSurfacePrepared();
+      if (commands.length === 0) return;
+      this.clearPrepareTimer();
+      this.execute(commands);
+      if (this.pendingSizePreset) {
+        const pending = this.pendingSizePreset;
+        this.pendingSizePreset = null;
+        this.applyOrbSize(pending);
+      }
+      return;
+    }
+
     if (stage === "surface") {
       const commands = this.motion.surfacePrepared();
       if (commands.length === 0) return;
@@ -213,10 +255,13 @@ export class OrbWindowController {
     if (commands.length === 0) return;
     this.clearTransitionTimer();
     this.execute(commands);
-    if (transition === "closing" && this.pendingSizePreset) {
-      const pending = this.pendingSizePreset;
-      this.pendingSizePreset = null;
-      this.applyOrbSize(pending);
+    if (transition === "opening" && this.motion.phase === "closing") {
+      this.outsideClickMonitor.stop();
+      this.armTransitionFallback("closing", CLOSE_MS);
+      return;
+    }
+    if (transition === "closing") {
+      this.armPrepareFallback("collapsed-surface");
     }
   }
 

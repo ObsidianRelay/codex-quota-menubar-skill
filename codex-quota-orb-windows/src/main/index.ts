@@ -19,6 +19,7 @@ import {CodexProcessMonitor, type CodexProcessState} from "./codex-process";
 import {CodexQuotaReader} from "./quota-reader";
 import {SettingsStore} from "./settings";
 import {OrbWindowController} from "./window-controller";
+import {loadWindowsGlobalMouseHook} from "./outside-click-monitor";
 
 app.setAppUserModelId("com.obsidianrelay.codexquotaorb");
 
@@ -160,6 +161,7 @@ app.on("second-instance", () => {
 });
 
 app.on("before-quit", () => {
+  controller?.shutdown();
   monitor?.stop();
 });
 
@@ -174,7 +176,8 @@ void app.whenReady().then(async () => {
     await settings.update({initialized: true});
   }
 
-  controller = new OrbWindowController(settings, () => rebuildTrayMenu());
+  const globalMouseHook = await loadWindowsGlobalMouseHook();
+  controller = new OrbWindowController(settings, () => rebuildTrayMenu(), globalMouseHook);
   registerIpc();
   await controller.create();
 

@@ -1,7 +1,7 @@
 {
   "name": "codex-quota-orb",
   "productName": "Codex Quota Orb",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "private": true,
   "description": "A local-first Windows floating quota orb for Codex.",
   "main": "dist-electron/main/index.js",
@@ -23,6 +23,10 @@
     "directories": {
       "output": "release"
     },
+    "asarUnpack": [
+      "node_modules/uiohook-napi/**/*",
+      "node_modules/node-gyp-build/**/*"
+    ],
     "files": [
       "dist/renderer/**/*",
       "dist-electron/**/*",
@@ -38,7 +42,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.ico"
@@ -55,7 +61,8 @@
   },
   "dependencies": {
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "uiohook-napi": "1.5.4"
   },
   "devDependencies": {
     "@types/node": "26.4.0",

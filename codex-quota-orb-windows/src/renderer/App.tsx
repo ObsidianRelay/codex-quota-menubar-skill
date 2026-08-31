@@ -102,6 +102,22 @@ export function App() {
     };
   }, [mode.phase]);
 
+  useLayoutEffect(() => {
+    if (mode.phase !== "closing-ready") return;
+    let cancelled = false;
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        if (!cancelled) window.codexQuotaOrb.notifyWindowPrepared("collapsed-surface");
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+    };
+  }, [mode.phase]);
+
   const usage = useMemo(() => usageSummary(snapshot), [snapshot]);
   const maximumDaily = Math.max(1, ...snapshot.dailyUsage.map((item) => item.tokens));
   const weekly = snapshot.remaining7d;
@@ -184,11 +200,11 @@ export function App() {
       >
         {weekly !== null && (
           <div className="liquid" aria-hidden="true">
-            <svg className="liquid-wave wave-back" viewBox="0 0 1000 40" preserveAspectRatio="none">
-              <path d="M-100 19 C70 16 185 23 340 19 S610 16 760 20 S980 22 1100 18 V44 H-100 Z" />
+            <svg className="liquid-wave wave-back" viewBox="0 0 2000 40" preserveAspectRatio="none">
+              <path d="M0 20 C125 17.8 250 22.2 375 20 S625 17.8 750 20 S875 22.2 1000 20 C1125 17.8 1250 22.2 1375 20 S1625 17.8 1750 20 S1875 22.2 2000 20 V44 H0 Z" />
             </svg>
-            <svg className="liquid-wave wave-front" viewBox="0 0 1000 40" preserveAspectRatio="none">
-              <path d="M-100 20 C80 23 205 16 360 20 S635 24 790 19 S985 17 1100 22 V44 H-100 Z" />
+            <svg className="liquid-wave wave-front" viewBox="0 0 2000 40" preserveAspectRatio="none">
+              <path d="M0 20 C125 23.5 250 16.5 375 20 S625 23.5 750 20 S875 16.5 1000 20 C1125 23.5 1250 16.5 1375 20 S1625 23.5 1750 20 S1875 16.5 2000 20 V44 H0 Z" />
             </svg>
           </div>
         )}

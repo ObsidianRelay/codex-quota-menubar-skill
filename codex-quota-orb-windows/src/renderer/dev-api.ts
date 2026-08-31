@@ -37,12 +37,17 @@ export const createDevApi = (): RendererApi => {
         publishMode();
       } else if (mode.phase === "expanded") {
         mode = {...mode, phase: "closing"};
-        document.body.classList.remove("preview-open");
         publishMode();
       }
     },
     showOrbSizeMenu: () => {},
     notifyWindowPrepared: (stage) => {
+      if (mode.phase === "closing-ready" && stage === "collapsed-surface") {
+        document.body.classList.remove("preview-open");
+        mode = {...mode, phase: "collapsed"};
+        publishMode();
+        return;
+      }
       if (mode.phase !== "opening-prep" || stage !== "expanded-bounds") return;
       document.body.classList.add("preview-open");
       mode = {...mode, phase: "opening"};
@@ -54,7 +59,7 @@ export const createDevApi = (): RendererApi => {
         publishMode();
       }
       if (transition === "closing" && mode.phase === "closing") {
-        mode = {...mode, phase: "collapsed"};
+        mode = {...mode, phase: "closing-ready"};
         publishMode();
       }
     },

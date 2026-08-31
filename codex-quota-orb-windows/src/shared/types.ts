@@ -32,9 +32,10 @@ export type WindowMotionPhase =
   | "opening-prep"
   | "opening"
   | "expanded"
-  | "closing";
+  | "closing"
+  | "closing-ready";
 
-export type WindowPreparedStage = "surface" | "expanded-bounds";
+export type WindowPreparedStage = "surface" | "expanded-bounds" | "collapsed-surface";
 export type WindowTransition = "opening" | "closing";
 
 export type OrbPoint = {

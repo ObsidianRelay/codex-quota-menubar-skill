@@ -2,7 +2,7 @@
   font-family: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", sans-serif;
   color: #f4f7ff;
   font-synthesis: none;
-  text-rendering: geometricPrecision;
+  text-rendering: auto;
 }
 
 * {
@@ -47,8 +47,8 @@ body.browser-preview.preview-open #root {
   --origin-y: 0px;
   --orb-size: 112px;
   --orb-gap: 4px;
-  --five-label-size: 8px;
-  --five-value-size: 14px;
+  --five-label-size: 10px;
+  --five-value-size: 16px;
   --week-label-size: 10px;
   --week-value-size: 23px;
   --wave-height: 20px;
@@ -63,8 +63,8 @@ body.browser-preview.preview-open #root {
 
 .size-small {
   --orb-gap: 3px;
-  --five-label-size: 6.3px;
-  --five-value-size: 11px;
+  --five-label-size: 8px;
+  --five-value-size: 13px;
   --week-label-size: 8px;
   --week-value-size: 18px;
   --wave-height: 16px;
@@ -73,8 +73,8 @@ body.browser-preview.preview-open #root {
 
 .size-large {
   --orb-gap: 5px;
-  --five-label-size: 9.7px;
-  --five-value-size: 17px;
+  --five-label-size: 12px;
+  --five-value-size: 20px;
   --week-label-size: 12px;
   --week-value-size: 28px;
   --wave-height: 24px;
@@ -121,7 +121,8 @@ body.browser-preview.preview-open #root {
 
 @media (min-width: 200px) {
   .phase-opening-prep .orb-surface,
-  .phase-closing .orb-surface {
+  .phase-closing .orb-surface,
+  .phase-closing-ready .orb-surface {
     left: var(--origin-x);
     top: var(--origin-y);
     width: var(--orb-size);
@@ -130,7 +131,7 @@ body.browser-preview.preview-open #root {
   }
 
   .phase-closing .orb-surface {
-    transition-duration: 260ms;
+    transition-duration: 220ms;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
@@ -165,29 +166,29 @@ body.browser-preview.preview-open #root {
 }
 
 .phase-closing .liquid {
-  transition-duration: 260ms, 100ms;
-  transition-delay: 0ms, 140ms;
+  transition-duration: 220ms, 80ms;
+  transition-delay: 0ms, 120ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1), ease-out;
 }
 
 .liquid-wave {
   position: absolute;
-  left: -10%;
+  left: 0;
   top: var(--wave-top);
-  width: 120%;
+  width: 200%;
   height: var(--wave-height);
   overflow: visible;
   will-change: transform;
 }
 
 .wave-back {
-  fill: rgba(198, 184, 255, 0.3);
-  animation: wave-left 9.2s linear infinite;
+  fill: rgba(205, 192, 255, 0.34);
+  animation: wave-left 7.2s linear infinite;
 }
 
 .wave-front {
-  fill: rgba(139, 111, 244, 0.45);
-  animation: wave-right 6.8s linear infinite;
+  fill: rgba(143, 113, 246, 0.52);
+  animation: wave-right 4.8s linear infinite;
 }
 
 .phase-opening-prep .liquid-wave,
@@ -216,7 +217,8 @@ body.browser-preview.preview-open #root {
 }
 
 .phase-closing .glass-highlight {
-  transition-delay: 140ms;
+  transition-duration: 80ms;
+  transition-delay: 120ms;
 }
 
 .orb-data {
@@ -283,7 +285,8 @@ body.browser-preview.preview-open #root {
 }
 
 .phase-closing .orb-data {
-  transition-delay: 160ms;
+  transition-duration: 80ms, 90ms;
+  transition-delay: 110ms;
 }
 
 .panel-content {
@@ -484,12 +487,12 @@ body.browser-preview.preview-open #root {
 
 @keyframes wave-left {
   from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-8%, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
 }
 
 @keyframes wave-right {
-  from { transform: translate3d(-7%, 0, 0); }
-  to { transform: translate3d(2%, 0, 0); }
+  from { transform: translate3d(-50%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
