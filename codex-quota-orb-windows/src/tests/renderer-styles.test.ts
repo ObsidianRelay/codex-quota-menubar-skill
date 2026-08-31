@@ -20,10 +20,17 @@ describe("orb renderer styles", () => {
   });
 
   it("keeps the restored orb visible while native bounds wait for two frames", () => {
+    expect(styles).toContain(".phase-collapsed .orb-surface");
     expect(styles).toContain(".phase-closing-ready .orb-surface");
     expect(styles).toContain("transition-duration: 220ms;");
     expect(styles).toContain("transition-duration: 80ms, 90ms;");
     expect(styles).toContain("transition-delay: 110ms;");
+  });
+
+  it("keeps the collapsed surface aligned inside the stable panel-sized host", () => {
+    expect(styles).toMatch(
+      /\.phase-collapsed \.orb-surface,[\s\S]*left: var\(--origin-x\);[\s\S]*width: var\(--orb-size\);/,
+    );
   });
 
   it("uses faster seamless compositor-only liquid waves", () => {

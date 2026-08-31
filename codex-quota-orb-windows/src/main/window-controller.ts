@@ -8,6 +8,7 @@ import {
 } from "../shared/animation";
 import {
   ORB_SIZE_BY_PRESET,
+  PANEL_SIZE,
   type ExpansionDirection,
   type OrbPoint,
   type OrbSizePreset,
@@ -73,7 +74,21 @@ export class OrbWindowController {
     };
     const display = screen.getDisplayNearestPoint(initial).workArea;
     this.orbCenter = clampOrbCenter(initial, display, this.orbSize);
-    const bounds = collapsedBoundsForCenter(this.orbCenter, this.orbSize);
+    const collapsedBounds = collapsedBoundsForCenter(this.orbCenter, this.orbSize);
+    this.direction = chooseExpansionDirection(this.orbCenter, display, this.orbSize);
+    this.expandedBounds = expandedBoundsForCenter(
+      this.orbCenter,
+      this.direction,
+      display,
+      this.orbSize,
+    );
+    this.originX = collapsedBounds.x - this.expandedBounds.x;
+    this.originY = collapsedBounds.y - this.expandedBounds.y;
+
+    // Resizing and moving a transparent native window while the renderer also
+    // changes layout can expose an intermediate compositor frame on Windows.
+    // Keep the host at panel size and restrict its native shape to the orb at rest.
+    const bounds = process.platform === "win32" ? this.expandedBounds : collapsedBounds;
 
     const window = new BrowserWindow({
       ...bounds,
@@ -98,6 +113,7 @@ export class OrbWindowController {
       },
     });
     this.window = window;
+    this.applyWindowShape(false);
     window.setAlwaysOnTop(true, "floating");
     window.setSkipTaskbar(true);
     window.webContents.setWindowOpenHandler(() => ({action: "deny"}));
@@ -191,6 +207,7 @@ export class OrbWindowController {
     );
     this.originX = from.x - this.expandedBounds.x;
     this.originY = from.y - this.expandedBounds.y;
+    this.applyWindowShape(true);
     this.window.show();
     this.window.focus();
     this.execute(this.motion.beginOpening());
@@ -294,7 +311,12 @@ export class OrbWindowController {
     this.drag = null;
     if (!moved) return;
     const bounds = this.window.getBounds();
-    const center = {x: bounds.x + this.orbSize / 2, y: bounds.y + this.orbSize / 2};
+    const center = process.platform === "win32"
+      ? {
+          x: bounds.x + this.originX + this.orbSize / 2,
+          y: bounds.y + this.originY + this.orbSize / 2,
+        }
+      : {x: bounds.x + this.orbSize / 2, y: bounds.y + this.orbSize / 2};
     const workArea = screen.getDisplayNearestPoint(center).workArea;
     const nearest = clampOrbCenter(center, workArea, this.orbSize);
     const edgeDistances = [
@@ -309,7 +331,7 @@ export class OrbWindowController {
     if (edgeDistances[0].edge === "top") nearest.y = workArea.y + inset;
     if (edgeDistances[0].edge === "bottom") nearest.y = workArea.y + workArea.height - inset;
     this.orbCenter = nearest;
-    this.window.setBounds(collapsedBoundsForCenter(nearest, this.orbSize), false);
+    this.placeCollapsedWindow(workArea);
     await this.settings.update({orbCenter: nearest});
   }
 
@@ -319,8 +341,7 @@ export class OrbWindowController {
     this.orbSize = ORB_SIZE_BY_PRESET[preset];
     const workArea = screen.getDisplayNearestPoint(this.orbCenter).workArea;
     this.orbCenter = clampOrbCenter(this.orbCenter, workArea, this.orbSize);
-    this.window.setBounds(collapsedBoundsForCenter(this.orbCenter, this.orbSize), false);
-    this.publishMode();
+    this.placeCollapsedWindow(workArea);
     void this.settings.update({orbCenter: this.orbCenter, orbSizePreset: preset});
     this.onSizeChanged?.(preset);
   }
@@ -332,9 +353,45 @@ export class OrbWindowController {
         this.window?.setBounds(this.expandedBounds, false);
       }
       if (command === "set-collapsed-bounds") {
-        this.window?.setBounds(collapsedBoundsForCenter(this.orbCenter, this.orbSize), false);
+        if (process.platform === "win32") this.applyWindowShape(false);
+        else this.window?.setBounds(collapsedBoundsForCenter(this.orbCenter, this.orbSize), false);
       }
     }
+  }
+
+  private placeCollapsedWindow(workArea: Bounds): void {
+    if (!this.window) return;
+    const collapsed = collapsedBoundsForCenter(this.orbCenter, this.orbSize);
+    if (process.platform !== "win32") {
+      this.window.setBounds(collapsed, false);
+      this.publishMode();
+      return;
+    }
+
+    this.direction = chooseExpansionDirection(this.orbCenter, workArea, this.orbSize);
+    this.expandedBounds = expandedBoundsForCenter(
+      this.orbCenter,
+      this.direction,
+      workArea,
+      this.orbSize,
+    );
+    this.originX = collapsed.x - this.expandedBounds.x;
+    this.originY = collapsed.y - this.expandedBounds.y;
+    this.window.setBounds(this.expandedBounds, false);
+    this.applyWindowShape(false);
+    this.publishMode();
+  }
+
+  private applyWindowShape(expanded: boolean): void {
+    if (!this.window || process.platform !== "win32") return;
+    this.window.setShape(expanded
+      ? [{x: 0, y: 0, width: PANEL_SIZE.width, height: PANEL_SIZE.height}]
+      : [{
+          x: Math.round(this.originX),
+          y: Math.round(this.originY),
+          width: this.orbSize,
+          height: this.orbSize,
+        }]);
   }
 
   private publishMode(): void {
@@ -385,7 +442,7 @@ export class OrbWindowController {
     const workArea = screen.getDisplayNearestPoint(this.orbCenter).workArea;
     const recovered = clampOrbCenter(this.orbCenter, workArea, this.orbSize);
     this.orbCenter = recovered;
-    this.window.setBounds(collapsedBoundsForCenter(recovered, this.orbSize), false);
+    this.placeCollapsedWindow(workArea);
     await this.settings.update({orbCenter: recovered});
   }
 }

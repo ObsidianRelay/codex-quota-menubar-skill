@@ -120,6 +120,7 @@ body.browser-preview.preview-open #root {
 }
 
 @media (min-width: 200px) {
+  .phase-collapsed .orb-surface,
   .phase-opening-prep .orb-surface,
   .phase-closing .orb-surface,
   .phase-closing-ready .orb-surface {
