@@ -1,6 +1,7 @@
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
 import {
   emptySnapshot,
+  ORB_SIZE,
   PANEL_SIZE,
   type QuotaSnapshot,
   type WindowMode,
@@ -55,8 +56,6 @@ export function App() {
     direction: "down",
     originX: 0,
     originY: 0,
-    orbSizePreset: "medium",
-    orbSize: 112,
   });
   const [now, setNow] = useState(() => Date.now());
   const drag = useRef<DragInfo | null>(null);
@@ -171,19 +170,12 @@ export function App() {
     }
   };
 
-  const handleContextMenu = (event: React.MouseEvent<HTMLElement>) => {
-    if (mode.phase !== "collapsed") return;
-    event.preventDefault();
-    window.codexQuotaOrb.showOrbSizeMenu();
-  };
-
   return (
     <main
-      className={`orb-shell phase-${mode.phase} size-${mode.orbSizePreset} direction-${mode.direction}`}
+      className={`orb-shell phase-${mode.phase} direction-${mode.direction}`}
       style={{
         "--liquid-height": `${liquidHeight}%`,
-        "--orb-size": `${mode.orbSize}px`,
-        "--orb-scale": mode.orbSize / 112,
+        "--orb-size": `${ORB_SIZE}px`,
         "--origin-x": `${mode.originX}px`,
         "--origin-y": `${mode.originY}px`,
       } as React.CSSProperties}
@@ -192,7 +184,6 @@ export function App() {
       <section
         className="orb-surface"
         onTransitionEnd={handleTransitionEnd}
-        onContextMenu={handleContextMenu}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

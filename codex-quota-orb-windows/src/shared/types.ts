@@ -16,15 +16,7 @@ export type QuotaSnapshot = {
 
 export type ExpansionDirection = "up" | "down" | "left" | "right";
 
-export type OrbSizePreset = "small" | "medium" | "large";
-
-export const ORB_SIZE_BY_PRESET: Record<OrbSizePreset, number> = {
-  small: 88,
-  medium: 112,
-  large: 136,
-};
-
-export const DEFAULT_ORB_SIZE_PRESET: OrbSizePreset = "medium";
+export const ORB_SIZE = 88;
 export const PANEL_SIZE = {width: 470, height: 390} as const;
 
 export type WindowMotionPhase =
@@ -48,8 +40,6 @@ export type WindowMode = {
   direction: ExpansionDirection;
   originX: number;
   originY: number;
-  orbSizePreset: OrbSizePreset;
-  orbSize: number;
 };
 
 export type LoginSettings = {
@@ -60,7 +50,6 @@ export type RendererApi = {
   getSnapshot: () => Promise<QuotaSnapshot>;
   refresh: () => Promise<QuotaSnapshot>;
   toggleWindow: () => void;
-  showOrbSizeMenu: () => void;
   notifyWindowPrepared: (stage: WindowPreparedStage) => void;
   notifyWindowTransitionComplete: (transition: WindowTransition) => void;
   beginDrag: (screenX: number, screenY: number) => void;

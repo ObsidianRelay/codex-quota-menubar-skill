@@ -5,7 +5,7 @@ import {
   expandedBoundsForCenter,
   snapOrbCenter,
 } from "../main/window-placement";
-import {ORB_SIZE_BY_PRESET, type OrbSizePreset} from "../shared/types";
+import {ORB_SIZE} from "../shared/types";
 
 const workArea = {x: 0, y: 0, width: 1920, height: 1040};
 
@@ -20,23 +20,20 @@ describe("window placement", () => {
   });
 
   it("snaps to the nearest edge and stays visible", () => {
-    expect(snapOrbCenter({x: 1900, y: 500}, workArea)).toEqual({x: 1852, y: 500});
-    expect(snapOrbCenter({x: -20, y: -20}, workArea)).toEqual({x: 68, y: 68});
+    expect(snapOrbCenter({x: 1900, y: 500}, workArea)).toEqual({x: 1864, y: 500});
+    expect(snapOrbCenter({x: -20, y: -20}, workArea)).toEqual({x: 56, y: 56});
   });
 
-  it("keeps every size preset anchored across the one-step native resize", () => {
-    for (const preset of Object.keys(ORB_SIZE_BY_PRESET) as OrbSizePreset[]) {
-      const size = ORB_SIZE_BY_PRESET[preset];
-      const orb = {x: 1852, y: 68};
-      const direction = chooseExpansionDirection(orb, workArea, size);
-      const collapsed = collapsedBoundsForCenter(orb, size);
-      const expanded = expandedBoundsForCenter(orb, direction, workArea, size);
-      const originX = collapsed.x - expanded.x;
-      const originY = collapsed.y - expanded.y;
-      expect(expanded.x + originX).toBe(collapsed.x);
-      expect(expanded.y + originY).toBe(collapsed.y);
-      expect(collapsed.width).toBe(size);
-    }
+  it("keeps the fixed-size orb anchored across the one-step native resize", () => {
+    const orb = {x: 1852, y: 68};
+    const direction = chooseExpansionDirection(orb, workArea);
+    const collapsed = collapsedBoundsForCenter(orb);
+    const expanded = expandedBoundsForCenter(orb, direction, workArea);
+    const originX = collapsed.x - expanded.x;
+    const originY = collapsed.y - expanded.y;
+    expect(expanded.x + originX).toBe(collapsed.x);
+    expect(expanded.y + originY).toBe(collapsed.y);
+    expect(collapsed.width).toBe(ORB_SIZE);
   });
 
   it("chooses all four expansion directions near their opposite edges", () => {

@@ -8,15 +8,19 @@ const styles = readFileSync(
 );
 
 describe("orb renderer styles", () => {
-  it("uses integer, legible 5h font sizes for all three presets", () => {
-    expect(styles).toContain("--five-label-size: 10px;");
-    expect(styles).toContain("--five-value-size: 16px;");
+  it("uses the fixed 88px orb and its legible font sizes", () => {
+    expect(styles).toContain("--orb-size: 88px;");
     expect(styles).toContain("--five-label-size: 8px;");
     expect(styles).toContain("--five-value-size: 13px;");
-    expect(styles).toContain("--five-label-size: 12px;");
-    expect(styles).toContain("--five-value-size: 20px;");
+    expect(styles).not.toContain(".size-small");
+    expect(styles).not.toContain(".size-large");
     expect(styles).toContain("text-rendering: auto;");
     expect(styles).not.toContain("text-rendering: geometricPrecision;");
+  });
+
+  it("maps the displayed percentage directly to the liquid height", () => {
+    expect(styles).toContain("height: var(--liquid-height);");
+    expect(styles).not.toContain("calc(var(--liquid-height) + 8px)");
   });
 
   it("keeps the restored orb visible while native bounds wait for two frames", () => {

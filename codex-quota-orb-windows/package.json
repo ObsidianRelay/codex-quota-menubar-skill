@@ -1,7 +1,7 @@
 {
   "name": "codex-quota-orb",
   "productName": "Codex Quota Orb",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "description": "A local-first Windows floating quota orb for Codex.",
   "main": "dist-electron/main/index.js",

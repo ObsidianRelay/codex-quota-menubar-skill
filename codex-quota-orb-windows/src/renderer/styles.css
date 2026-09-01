@@ -32,8 +32,8 @@ body.browser-preview #root {
   position: absolute;
   top: 24px;
   right: 24px;
-  width: 112px;
-  height: 112px;
+  width: 88px;
+  height: 88px;
 }
 
 body.browser-preview.preview-open #root {
@@ -45,23 +45,7 @@ body.browser-preview.preview-open #root {
   --liquid-height: 65%;
   --origin-x: 0px;
   --origin-y: 0px;
-  --orb-size: 112px;
-  --orb-gap: 4px;
-  --five-label-size: 10px;
-  --five-value-size: 16px;
-  --week-label-size: 10px;
-  --week-value-size: 23px;
-  --wave-height: 20px;
-  --wave-top: -9px;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  contain: layout paint style;
-  background: transparent;
-}
-
-.size-small {
+  --orb-size: 88px;
   --orb-gap: 3px;
   --five-label-size: 8px;
   --five-value-size: 13px;
@@ -69,16 +53,12 @@ body.browser-preview.preview-open #root {
   --week-value-size: 18px;
   --wave-height: 16px;
   --wave-top: -7px;
-}
-
-.size-large {
-  --orb-gap: 5px;
-  --five-label-size: 12px;
-  --five-value-size: 20px;
-  --week-label-size: 12px;
-  --week-value-size: 28px;
-  --wave-height: 24px;
-  --wave-top: -11px;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  contain: layout paint style;
+  background: transparent;
 }
 
 .orb-surface {
@@ -143,7 +123,7 @@ body.browser-preview.preview-open #root {
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(var(--liquid-height) + 8px);
+  height: var(--liquid-height);
   min-height: 0;
   overflow: hidden;
   background:

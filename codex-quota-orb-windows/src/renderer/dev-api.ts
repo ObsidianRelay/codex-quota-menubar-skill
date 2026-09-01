@@ -20,8 +20,6 @@ export const createDevApi = (): RendererApi => {
     direction: "down",
     originX: 358,
     originY: 0,
-    orbSizePreset: "medium",
-    orbSize: 112,
   };
   const modeListeners = new Set<(value: WindowMode) => void>();
   const publishMode = () => {
@@ -40,7 +38,6 @@ export const createDevApi = (): RendererApi => {
         publishMode();
       }
     },
-    showOrbSizeMenu: () => {},
     notifyWindowPrepared: (stage) => {
       if (mode.phase === "closing-ready" && stage === "collapsed-surface") {
         document.body.classList.remove("preview-open");

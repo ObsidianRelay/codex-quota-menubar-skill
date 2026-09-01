@@ -5,7 +5,6 @@ const api: RendererApi = {
   getSnapshot: () => ipcRenderer.invoke("quota:get") as Promise<QuotaSnapshot>,
   refresh: () => ipcRenderer.invoke("quota:refresh") as Promise<QuotaSnapshot>,
   toggleWindow: () => ipcRenderer.send("window:toggle"),
-  showOrbSizeMenu: () => ipcRenderer.send("window:size-menu"),
   notifyWindowPrepared: (stage) => ipcRenderer.send("window:prepared", stage),
   notifyWindowTransitionComplete: (transition) =>
     ipcRenderer.send("window:transition-complete", transition),

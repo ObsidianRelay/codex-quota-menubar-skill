@@ -1,10 +1,4 @@
-import {
-  ORB_SIZE_BY_PRESET,
-  PANEL_SIZE,
-  type ExpansionDirection,
-  type OrbPoint,
-  type OrbSizePreset,
-} from "../shared/types";
+import {ORB_SIZE, PANEL_SIZE, type ExpansionDirection, type OrbPoint} from "../shared/types";
 
 export type Bounds = {
   x: number;
@@ -21,7 +15,7 @@ const clamp = (value: number, min: number, max: number) =>
 export const clampOrbCenter = (
   point: OrbPoint,
   workArea: Bounds,
-  orbSize = ORB_SIZE_BY_PRESET.medium,
+  orbSize = ORB_SIZE,
 ): OrbPoint => ({
   x: clamp(
     point.x,
@@ -38,7 +32,7 @@ export const clampOrbCenter = (
 export const snapOrbCenter = (
   point: OrbPoint,
   workArea: Bounds,
-  orbSize = ORB_SIZE_BY_PRESET.medium,
+  orbSize = ORB_SIZE,
 ): OrbPoint => {
   const clamped = clampOrbCenter(point, workArea, orbSize);
   const edges = [
@@ -59,7 +53,7 @@ export const snapOrbCenter = (
 export const chooseExpansionDirection = (
   orb: OrbPoint,
   workArea: Bounds,
-  orbSize = ORB_SIZE_BY_PRESET.medium,
+  orbSize = ORB_SIZE,
 ): ExpansionDirection => {
   const half = orbSize / 2;
   const distanceToEdges = [
@@ -98,7 +92,7 @@ export const chooseExpansionDirection = (
 
 export const collapsedBoundsForCenter = (
   orb: OrbPoint,
-  orbSize = ORB_SIZE_BY_PRESET.medium,
+  orbSize = ORB_SIZE,
 ): Bounds => ({
   x: Math.round(orb.x - orbSize / 2),
   y: Math.round(orb.y - orbSize / 2),
@@ -110,7 +104,7 @@ export const expandedBoundsForCenter = (
   orb: OrbPoint,
   direction: ExpansionDirection,
   workArea: Bounds,
-  orbSize = ORB_SIZE_BY_PRESET.medium,
+  orbSize = ORB_SIZE,
 ): Bounds => {
   const half = orbSize / 2;
   let x = orb.x - half;
@@ -126,5 +120,3 @@ export const expandedBoundsForCenter = (
     ...PANEL_SIZE,
   };
 };
-
-export const orbPixelsForPreset = (preset: OrbSizePreset) => ORB_SIZE_BY_PRESET[preset];

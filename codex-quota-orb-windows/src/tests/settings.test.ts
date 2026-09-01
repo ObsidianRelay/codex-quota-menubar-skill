@@ -5,7 +5,7 @@ import {describe, expect, it} from "vitest";
 import {SettingsStore} from "../main/settings";
 
 describe("settings migration", () => {
-  it("uses medium size for an existing settings file without a size field", async () => {
+  it("loads position settings without a size field", async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), "codex-orb-settings-"));
     await writeFile(
       path.join(directory, "settings.json"),
@@ -16,11 +16,10 @@ describe("settings migration", () => {
     expect(await settings.load()).toEqual({
       initialized: true,
       orbCenter: {x: 300, y: 220},
-      orbSizePreset: "medium",
     });
   });
 
-  it("preserves a valid selected size", async () => {
+  it("ignores a legacy selected size", async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), "codex-orb-settings-"));
     await writeFile(
       path.join(directory, "settings.json"),
@@ -28,6 +27,6 @@ describe("settings migration", () => {
       "utf8",
     );
     const settings = new SettingsStore(directory);
-    expect((await settings.load()).orbSizePreset).toBe("large");
+    expect(await settings.load()).toEqual({initialized: true, orbCenter: null});
   });
 });
