@@ -9,8 +9,16 @@ floating quota orb that appears while Codex is running.
 ### macOS
 
 <p align="center">
+  <img src="codex-quota-menubar/assets/screenshots/codex-quota-status-item.png" alt="Codex quota remaining in the macOS menu bar" width="310">
+</p>
+
+<p align="center"><em>Menu bar status item</em></p>
+
+<p align="center">
   <img src="codex-quota-menubar/assets/screenshots/codex-quota-dashboard.png" alt="Codex quota and local Mac status dashboard" width="470">
 </p>
+
+<p align="center"><em>Expanded quota and local Mac status dashboard</em></p>
 
 ### Windows
 
@@ -149,7 +157,8 @@ codex-quota-menubar/
 │   ├── icon-codex-light.png
 │   ├── icon-fan.png
 │   └── screenshots/
-│       └── codex-quota-dashboard.png
+│       ├── codex-quota-dashboard.png
+│       └── codex-quota-status-item.png
 └── scripts/
     ├── build_app.sh
     ├── verify_app.sh
