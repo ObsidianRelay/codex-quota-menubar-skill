@@ -36,10 +36,17 @@ jobs:
       - name: Build and test Windows installer
         run: npm run build:win
 
+      - name: Read package version
+        id: package
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+
       - name: Upload unsigned test installer
         uses: actions/upload-artifact@v4
         with:
-          name: CodexQuotaOrb-Setup-0.1.3-x64
-          path: codex-quota-orb-windows/release/CodexQuotaOrb-Setup-0.1.3-x64.exe
+          name: CodexQuotaOrb-Setup-${{ steps.package.outputs.version }}-x64
+          path: codex-quota-orb-windows/release/CodexQuotaOrb-Setup-${{ steps.package.outputs.version }}-x64.exe
           if-no-files-found: error
           retention-days: 14
